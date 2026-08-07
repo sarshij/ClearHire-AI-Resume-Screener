@@ -11,6 +11,8 @@ pinned: false
 
 > **Complete End-to-End Project — Ready for Project Panel Presentation**
 > Built with FastAPI + SBERT + Decision Tree + 3-Page Web UI
+>
+> 🚀 **Quick Start (Windows):** Simply double-click `run.bat` in the project folder to start the application!
 
 ---
 
@@ -871,7 +873,7 @@ ls -la data/processed/combined_dataset.csv
 
 ## 12. How to Run
 
-### Quick Start (One Command)
+### Quick Start (Linux/Mac/WSL)
 
 ```bash
 cd resume-screener
@@ -886,6 +888,15 @@ cd "$(dirname "$0")"
 echo "Starting Resume Screener..."
 echo "Open http://localhost:8000 in your browser"
 python3 app/main.py
+```
+
+### Quick Start (Windows)
+
+Just double-click `run.bat` in the project folder, or run it from the command line:
+
+```cmd
+cd resume-screener
+run.bat
 ```
 
 ### Manual Start
