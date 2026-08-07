@@ -11,7 +11,8 @@ env/
 .env
 
 # Logs
-logs/*.log
+*.log
+runlogs.txt
 
 # Scratch / temp
 scratch/
@@ -45,3 +46,7 @@ build/
 
 # HuggingFace cache
 .cache/
+
+# run.sh dependency install sentinel files (machine-specific)
+.deps_installed
+.deps_hash

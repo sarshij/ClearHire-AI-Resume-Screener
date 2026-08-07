@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClearHire — AI Resume Screener</title>
-  <meta name="description" content="BERT-powered resume screening and authenticity validation using Decision Tree classification.">
+  <meta name="description" content="SBERT-powered resume screening and authenticity validation using XGBoost classification with 17 validation features and NER-based format detection.">
   <link rel="stylesheet" href="/static/style.css">
+  <!-- Chart.js for skill gap donut chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -37,10 +39,17 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Analytics
       </a>
+      <a href="/logout" class="nav-link" style="color:var(--gray-400);" title="Logout">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </a>
     </nav>
-    <button class="nav-mobile-btn" id="mobileBtn" aria-label="Open menu">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </button>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:0.2rem 0.6rem;border-radius:99px;background:#EFF6FF;color:var(--primary);border:1px solid #bfdbfe;">🟦 HR</span>
+      <button class="nav-mobile-btn" id="mobileBtn" aria-label="Open menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -71,6 +80,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Analytics
     </a>
+    <a href="/logout" class="mobile-nav-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Logout
+    </a>
   </nav>
   <div class="mobile-menu-footer">
     <p style="font-size:0.75rem; color:var(--gray-400);">© 2026 ClearHire · Academic Project</p>
@@ -95,7 +108,7 @@
     <div style="position:relative;z-index:1;max-width:700px;margin:0 auto;">
       <div class="hero-eyebrow animate-fadeInUp">
         <span class="live-dot"></span>
-        SBERT · Decision Tree Classification · NLP Pipeline
+        SBERT · XGBoost Classification · NER Resume Detection
       </div>
 
       <h1 class="hero-title animate-fadeInUp delay-100">
@@ -103,26 +116,27 @@
       </h1>
 
       <p class="hero-subtitle animate-fadeInUp delay-200">
-        Upload a resume and job description. Our BERT-based pipeline scores semantic similarity,
-        skill alignment, and flags authenticity signals using a Decision Tree classifier.
+        Upload a resume and job description. Our SBERT-based pipeline scores semantic similarity (60%),
+        skill overlap (25%), and experience relevance (15%), then validates authenticity with 17 features via XGBoost.
+        Non-resume documents are detected and rejected automatically.
       </p>
 
       <div class="hero-stats animate-fadeInUp delay-300">
         <div class="hero-stat">
           <span class="hero-stat-dot" style="background:var(--success);"></span>
-          83.6% Classifier Accuracy
+          87.38% Classifier Accuracy
         </div>
         <div class="hero-stat">
           <span class="hero-stat-dot" style="background:var(--primary);"></span>
-          SBERT all-MiniLM-L6-v2
+          SBERT multilingual-MiniLM-L12-v2
         </div>
         <div class="hero-stat">
           <span class="hero-stat-dot" style="background:var(--accent-purple);"></span>
-          17 Validation Signals
+          17 Validation Features
         </div>
         <div class="hero-stat">
           <span class="hero-stat-dot" style="background:var(--accent-amber);"></span>
-          3-Class Output
+          4-Class Output
         </div>
       </div>
     </div>
@@ -135,7 +149,7 @@
         </div>
         <div>
           <h3>Semantic Matching</h3>
-          <p>Cosine similarity on 384-dim BERT embeddings</p>
+          <p>Cosine similarity on 384-dim multilingual SBERT embeddings</p>
         </div>
       </div>
       <div class="feature-card">
@@ -153,7 +167,7 @@
         </div>
         <div>
           <h3>Authenticity Check</h3>
-          <p>17 signals to detect AI-generated or fake resumes</p>
+          <p>17 features to detect AI-generated or fake resumes</p>
         </div>
       </div>
       <div class="feature-card">
@@ -195,7 +209,7 @@
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
                 <div class="file-drop-title">Drop resume here or <span style="color:var(--primary);font-weight:600;">click to browse</span></div>
-                <div class="file-drop-sub">PDF, DOCX, TXT · Max 5 MB</div>
+                <div class="file-drop-sub">PDF, DOCX, TXT, Images (OCR) · Max 5 MB</div>
                 <div id="resumeFileBadge" style="display:none;" class="file-badge">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
                   <span id="resumeFileName"></span>
@@ -290,6 +304,7 @@
                 <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.5rem;">Classification</div>
                 <div id="clsBadge" class="cls-badge" style="font-size:0.9rem;padding:0.5rem 1.25rem;"></div>
                 <div style="margin-top:0.75rem;font-size:0.8125rem;color:var(--gray-500);" id="clsFilename"></div>
+                <div id="llmVerificationBadge" style="display:none; margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px; font-size: 0.85rem; align-items: flex-start; gap: 0.5rem;"></div>
               </div>
               <!-- Confidence ring -->
               <div style="text-align:center;">
@@ -344,7 +359,7 @@
           </div>
         </div>
 
-        <!-- Skills Analysis -->
+        <!-- Skills Analysis with Visual Donut Chart -->
         <div class="card mb-4 animate-fadeInUp delay-200">
           <div class="card-header">
             <h2 class="card-title">
@@ -352,7 +367,39 @@
               Skills Analysis
             </h2>
           </div>
-          <div class="card-body" id="skillsContent"></div>
+          <div class="card-body">
+            <!-- Visual chart row -->
+            <div style="display:flex;align-items:center;gap:2rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+              <div style="position:relative;width:140px;height:140px;flex-shrink:0;">
+                <canvas id="skillDonutChart" width="140" height="140"></canvas>
+                <div id="skillDonutCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+                  <div style="font-size:1.4rem;font-weight:800;color:var(--gray-800);" id="skillMatchPct">0%</div>
+                  <div style="font-size:0.62rem;color:var(--gray-400);font-weight:600;text-transform:uppercase;">Match</div>
+                </div>
+              </div>
+              <div style="flex:1;min-width:160px;">
+                <div style="display:flex;flex-direction:column;gap:0.6rem;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Matched skills</span><span id="skillMatchCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#10B981;">0</span></div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Missing skills</span><span id="skillMissingCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#EF4444;">0</span></div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#3B82F6;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Extra skills</span><span id="skillExtraCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#3B82F6;">0</span></div>
+                </div>
+              </div>
+            </div>
+            <!-- Chip lists -->
+            <div id="skillsContent"></div>
+          </div>
+        </div>
+        <!-- Decision Explainability (SHAP Top Features) -->
+        <div class="card mb-4 animate-fadeInUp delay-250" id="shapCard" style="display:none;">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Decision Explainability
+              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">Why this verdict?</span>
+            </h2>
+            <p class="card-description">Top features that most influenced the XGBoost classification decision for this resume.</p>
+          </div>
+          <div class="card-body" id="shapContent"></div>
         </div>
 
         <!-- Validation Signals -->
@@ -363,12 +410,17 @@
               Validation Signals
               <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">17 features</span>
             </h2>
-            <p class="card-description">Rule-based authenticity features extracted from the resume.</p>
+            <p class="card-description">17 rule-based authenticity features extracted from the resume for XGBoost classification.</p>
           </div>
           <div class="card-body">
             <div class="val-grid" id="valGrid"></div>
           </div>
         </div>
+
+
+          </div>
+        </div>
+
 
         <!-- Resume Preview -->
         <div class="card animate-fadeInUp delay-400">
@@ -376,7 +428,7 @@
             <h2 class="card-title">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Extracted Resume Text
-              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">Preview (first 500 chars)</span>
+              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">Summary Preview</span>
             </h2>
           </div>
           <div class="card-body">
@@ -390,25 +442,7 @@
   </div><!-- /container -->
 </main>
 
-<!-- ── Footer ─────────────────────────────────────────────── -->
-<footer>
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <div class="logo-mark" style="width:1.75rem;height:1.75rem;border-radius:8px;box-shadow:none;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      </div>
-      <span class="footer-brand-name">ClearHire</span>
-      <span class="footer-meta" style="margin-left:0.5rem;">· 6th Semester Minor Project</span>
-    </div>
-    <div class="footer-tags">
-      <span class="footer-tag">SBERT</span>
-      <span class="footer-tag">Decision Tree</span>
-      <span class="footer-tag">spaCy NER</span>
-      <span class="footer-tag">FastAPI</span>
-    </div>
-    <div class="footer-meta">© 2026 Academic Project</div>
-  </div>
-</footer>
+
 
 <script>
 /* ── Mobile Menu ─────────────────────────────────────────── */
@@ -491,7 +525,7 @@ document.getElementById('uploadForm').addEventListener('submit', async function(
   resultCard.classList.add('hidden');
 
   // Animate loading labels
-  const steps = ['Extracting text from resume…', 'Computing BERT embeddings…', 'Scoring skill overlap…', 'Running Decision Tree…', 'Compiling results…'];
+  const steps = ['Extracting text from resume…', 'Computing SBERT embeddings…', 'Scoring skill overlap…', 'Running XGBoost classifier…', 'Compiling results…'];
   let si = 0;
   const stepTimer = setInterval(() => { label.textContent = steps[Math.min(si++, steps.length-1)]; }, 900);
 
@@ -535,12 +569,32 @@ function renderResults(data) {
   const clsMap = {
     'Authentic':       { cls:'cls-authentic',  icon:'✓', color:'#15803d' },
     'Suspicious':      { cls:'cls-suspicious', icon:'⚠', color:'#a16207' },
-    'Potentially Fake':{ cls:'cls-fake',       icon:'✗', color:'#b91c1c' }
+    'Potentially Fake':{ cls:'cls-fake',       icon:'✗', color:'#b91c1c' },
+    'Not a Resume':    { cls:'cls-invalid',    icon:'🚫', color:'#374151' }
   };
   const info = clsMap[label] || { cls:'', icon:'?', color:'var(--gray-600)' };
   badge.className = `cls-badge ${info.cls}`;
   badge.innerHTML = `${info.icon} ${label}`;
   document.getElementById('clsFilename').textContent = `File: ${data.filename || ''}`;
+
+  // LLM Verification Badge
+  const llmBadge = document.getElementById('llmVerificationBadge');
+  if (cls.llm_verification) {
+    llmBadge.style.display = 'flex';
+    if (cls.llm_verification.consensus === 'Agree') {
+      llmBadge.style.backgroundColor = '#ecfdf5';
+      llmBadge.style.color = '#065f46';
+      llmBadge.style.border = '1px solid #a7f3d0';
+      llmBadge.innerHTML = `<span style="font-size:1.1rem;">🛡️</span> <div>${cls.llm_verification.reasoning}</div>`;
+    } else {
+      llmBadge.style.backgroundColor = '#fff7ed';
+      llmBadge.style.color = '#9a3412';
+      llmBadge.style.border = '1px solid #fed7aa';
+      llmBadge.innerHTML = `<span style="font-size:1.1rem;">⚠️</span> <div>${cls.llm_verification.reasoning}</div>`;
+    }
+  } else {
+    llmBadge.style.display = 'none';
+  }
 
   // Confidence ring
   const pct = Math.round(conf * 100);
@@ -584,10 +638,36 @@ function renderResults(data) {
     </div>`;
   }).join('');
 
-  // Skills
+  // Skills with visual donut chart
   const matched = skills.matched || [];
   const missing = skills.missing || [];
   const extra   = skills.extra   || [];
+
+  // Update donut chart
+  const totalSkills = matched.length + missing.length + extra.length;
+  const matchPct = totalSkills > 0 ? Math.round((matched.length / (matched.length + missing.length || 1)) * 100) : 0;
+  document.getElementById('skillMatchPct').textContent   = matchPct + '%';
+  document.getElementById('skillMatchCount').textContent = matched.length;
+  document.getElementById('skillMissingCount').textContent = missing.length;
+  document.getElementById('skillExtraCount').textContent = extra.length;
+
+  // Destroy previous chart instance if it exists
+  if (window._skillChart) { window._skillChart.destroy(); }
+  const ctx = document.getElementById('skillDonutChart').getContext('2d');
+  window._skillChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Matched', 'Missing', 'Extra'],
+      datasets: [{ data: [matched.length || 0.001, missing.length || 0.001, extra.length || 0.001],
+        backgroundColor: ['#10B981', '#EF4444', '#3B82F6'],
+        borderWidth: 2, borderColor: '#fff', hoverOffset: 4
+      }]
+    },
+    options: { cutout: '72%', plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` ${ctx.label}: ${ctx.raw === 0.001 ? 0 : ctx.raw}`
+    }}}, animation: { animateRotate: true, duration: 800 }}
+  });
+
   const skillsContent = document.getElementById('skillsContent');
   skillsContent.innerHTML = [
     matched.length ? `<div class="mb-4"><div class="section-label">✓ Matched (${matched.length})</div><div class="skill-chips">${matched.map(s=>`<span class="skill-chip chip-match">${s}</span>`).join('')}</div></div>` : '',
@@ -595,6 +675,51 @@ function renderResults(data) {
     extra.length   ? `<div><div class="section-label">+ Additional Skills (${extra.length})</div><div class="skill-chips">${extra.map(s=>`<span class="skill-chip chip-extra">${s}</span>`).join('')}</div></div>` : '',
     (!matched.length && !missing.length && !extra.length) ? `<p class="text-muted text-sm">No skill data available.</p>` : ''
   ].join('');
+
+  // SHAP Explainability Panel
+  const topFeatures = cls.top_features || [];
+  const shapCard    = document.getElementById('shapCard');
+  const shapContent = document.getElementById('shapContent');
+  const friendlyNames = {
+    semantic_similarity:'Semantic Similarity', skill_overlap_score:'Skill Overlap',
+    experience_relevance_score:'Experience Relevance', final_match_score:'Final Match Score',
+    overlapping_jobs:'Overlapping Jobs', promotion_speed:'Promotion Speed',
+    experience_graduation_gap:'Exp/Graduation Gap', skill_density:'Skill Density',
+    achievement_count:'Achievement Count', generic_phrase_score:'Generic Phrases',
+    gap_years:'Employment Gap Years', keyword_stuffing_score:'Keyword Stuffing',
+    years_experience:'Years of Experience', num_certifications:'Certifications',
+    num_skills:'Total Skills', education_level_encoded:'Education Level',
+    skill_experience_alignment:'Skill-Experience Alignment'
+  };
+  if (topFeatures.length) {
+    shapCard.style.display = '';
+    const maxContrib = Math.max(...topFeatures.map(f => Math.abs(f.contribution)), 0.0001);
+    shapContent.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.9rem;">
+        ${topFeatures.map((f, i) => {
+          const name   = friendlyNames[f.feature] || f.feature.replace(/_/g,' ');
+          const isPos  = f.contribution >= 0;
+          const color  = isPos ? '#10B981' : '#EF4444';
+          const dir    = isPos ? '↑ Toward verdict' : '↓ Against verdict';
+          const barPct = Math.min(100, Math.abs(f.contribution) / maxContrib * 100).toFixed(1);
+          return `<div style="background:var(--gray-50);border:1px solid var(--border);border-radius:8px;padding:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+              <span style="font-weight:600;font-size:0.82rem;color:var(--gray-800);">${i+1}. ${name}</span>
+              <span style="font-size:0.72rem;font-weight:700;color:${color};background:${isPos?'#dcfce7':'#fee2e2'};padding:0.15rem 0.5rem;border-radius:99px;">${dir}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <div style="flex:1;height:7px;background:var(--gray-100);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:${barPct}%;background:${color};border-radius:99px;transition:width 0.8s ease;"></div>
+              </div>
+              <span style="font-size:0.72rem;font-family:var(--font-mono);color:var(--gray-500);min-width:60px;text-align:right;">val: ${f.value.toFixed(3)}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <p style="margin-top:0.75rem;font-size:0.72rem;color:var(--gray-400);">SHAP-based feature attribution. Positive contribution pushes toward the assigned class; negative pushes away.</p>`;
+  } else {
+    shapCard.style.display = 'none';
+  }
 
   // Validation grid
   const valGrid = document.getElementById('valGrid');
@@ -607,7 +732,7 @@ function renderResults(data) {
     gap_years:'Gap Years', keyword_stuffing_score:'Keyword Stuffing',
     years_experience:'Years Exp', num_certifications:'Certifications',
     num_skills:'Skill Count', education_level_encoded:'Education Level',
-    has_previous_job:'Has Prev Job', skill_experience_alignment:'Skill Alignment'
+    skill_experience_alignment:'Skill Alignment'
   };
   valGrid.innerHTML = Object.entries(validation).map(([key, val]) => {
     const friendly = valFriendly[key] || key.replace(/_/g,' ');

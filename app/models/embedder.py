@@ -40,7 +40,7 @@ def get_model(model_name: str = 'all-MiniLM-L6-v2'):
     try:
         _MODEL = SentenceTransformer(model_name)
         _MODEL_NAME = model_name
-        logger.info("SBERT model loaded")
+        logger.info("SBERT model loaded successfully.")
     except Exception as e:
         logger.warning(f"Failed to load SBERT model '{model_name}': {e}. Using dummy zero embeddings.")
         _MODEL = _DummySentenceTransformer()

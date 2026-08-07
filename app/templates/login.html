@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClearHire — Login</title>
+  <meta name="description"
+    content="Sign in to ClearHire — SBERT-powered resume screening and authenticity validation platform.">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* ── Login Page Extras (no new design language — extends existing tokens) ── */
+    .login-wrap {
+      min-height: calc(100vh - 4rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header .hero-eyebrow {
+      margin-bottom: 1rem;
+      display: inline-flex;
+    }
+
+    .login-header h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      font-size: 0.875rem;
+      color: var(--gray-500);
+      line-height: 1.6;
+    }
+
+    .role-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .role-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 1.25rem 1rem;
+      border: 2px solid var(--border);
+      border-radius: var(--r-xl);
+      background: white;
+      cursor: pointer;
+      transition: var(--t-smooth);
+      font-family: inherit;
+      text-align: center;
+    }
+
+    .role-tab:hover {
+      border-color: var(--primary-light);
+      background: var(--primary-soft);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .role-tab.active {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .role-tab-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: var(--r-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--t-smooth);
+    }
+
+    .role-tab.hr .role-tab-icon {
+      background: #EFF6FF;
+    }
+
+    .role-tab.user .role-tab-icon {
+      background: #F0FDF4;
+    }
+
+    .role-tab.active.hr .role-tab-icon {
+      background: rgba(37, 99, 235, 0.15);
+    }
+
+    .role-tab.active.user .role-tab-icon {
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .role-tab-label {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--gray-700);
+      line-height: 1.3;
+    }
+
+    .role-tab.active .role-tab-label {
+      color: var(--primary);
+    }
+
+    .role-tab.active.user .role-tab-label {
+      color: var(--success);
+    }
+
+    .role-tab-sub {
+      font-size: 0.72rem;
+      color: var(--gray-400);
+      font-weight: 400;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      margin-top: 0.25rem;
+    }
+
+    .role-badge.hr {
+      background: #EFF6FF;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+    }
+
+    .role-badge.user {
+      background: #F0FDF4;
+      color: #15803d;
+      border: 1px solid #86efac;
+    }
+
+    .alert-login {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      padding: 0.875rem 1.125rem;
+      border-radius: var(--r-lg);
+      font-size: 0.84rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid #fca5a5;
+      background: #fff1f2;
+      color: #b91c1c;
+      animation: fadeInUp 0.3s ease-out;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      margin: 1.25rem 0;
+      color: var(--gray-300);
+      font-size: 0.78rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .form-input-icon {
+      position: relative;
+    }
+
+    .form-input-icon svg {
+      position: absolute;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .form-input-icon input {
+      padding-left: 2.5rem;
+    }
+
+    .demo-hint {
+      font-size: 0.72rem;
+      color: var(--gray-400);
+      text-align: center;
+      margin-top: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .demo-hint code {
+      font-family: var(--font-mono);
+      background: var(--gray-100);
+      padding: 0.1rem 0.375rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: var(--gray-600);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <header>
+    <div class="nav-container">
+      <a href="/login" class="logo">
+        <div class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </div>
+        <span class="logo-text">ClearHire</span>
+      </a>
+      <div style="font-size:0.8rem;color:var(--gray-400);">SBERT · XGBoost · NER</div>
+    </div>
+  </header>
+
+  <!-- ── Login Main ─────────────────────────────────────────── -->
+  <div class="login-wrap">
+    <div class="login-container animate-fadeInUp">
+
+      <!-- Header -->
+      <div class="login-header">
+        <div class="hero-eyebrow">
+          <span class="live-dot"></span>
+          AI Resume Screening Platform
+        </div>
+        <h1>Welcome to <span class="grad">ClearHire</span></h1>
+        <p>Sign in to access the SBERT-powered resume screening and authenticity validation system.</p>
+      </div>
+
+      <!-- Role selector -->
+      <div class="role-tabs" id="roleTabs">
+        <button type="button" class="role-tab hr active" id="tabHR" onclick="selectRole('hr')">
+          <div class="role-tab-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div>
+            <div class="role-tab-label">HR Login</div>
+            <div class="role-tab-sub">Full dashboard access</div>
+            <span class="role-badge hr">🟦 HR</span>
+          </div>
+        </button>
+        <button type="button" class="role-tab user" id="tabUser" onclick="selectRole('user')">
+          <div class="role-tab-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+              stroke-linecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div>
+            <div class="role-tab-label">Applicant Login</div>
+            <div class="role-tab-sub">Submit resume only</div>
+            <span class="role-badge user">🟩 Applicant</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- Login Card -->
+      <div class="card animate-fadeInUp delay-100">
+        <div class="card-header">
+          <h2 class="card-title" id="cardTitle">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2"
+              stroke-linecap="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            HR Sign In
+          </h2>
+          <p class="card-description" id="cardDesc">Enter your credentials to access the full screening dashboard.</p>
+        </div>
+        <div class="card-body">
+
+          <!-- Success alert (shown after registration) -->
+          <div id="successBanner" class="alert-login" style="display:none;border-color:#86efac;background:#f0fdf4;color:#166534;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Account created successfully! You can now sign in.</span>
+          </div>
+
+          <!-- Error alert -->
+          {% if error %}
+          <div class="alert-login">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" style="flex-shrink:0;margin-top:1px;">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{{ error }}</span>
+          </div>
+          {% endif %}
+
+          <form method="POST" action="/login" id="loginForm" autocomplete="off">
+            <input type="hidden" name="role" id="roleInput" value="hr">
+
+            <!-- Username -->
+            <div class="form-group">
+              <label class="form-label" for="usernameInput">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Username
+              </label>
+              <div class="form-input-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"
+                  stroke-linecap="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <input type="text" name="username" id="usernameInput" class="form-input" placeholder="Enter username"
+                  required autocomplete="username">
+              </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+              <label class="form-label" for="passwordInput">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Password
+              </label>
+              <div class="form-input-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2"
+                  stroke-linecap="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <input type="password" name="password" id="passwordInput" class="form-input"
+                  placeholder="Enter password" required autocomplete="current-password">
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="btn btn-primary w-full btn-lg" id="loginBtn" style="margin-top:0.25rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
+              </svg>
+              Sign In as HR
+            </button>
+          </form>
+
+          <!-- Demo credentials hint -->
+          <div class="demo-hint">
+            <strong style="color:var(--gray-600);">Demo credentials</strong><br>
+            HR: <code>admin</code> / <code>hr2026</code> &nbsp;·&nbsp; Applicant: <code>applicant</code> /
+            <code>apply2026</code>
+          </div>
+
+          <!-- Register link -->
+          <div style="text-align:center;margin-top:1rem;">
+            <span style="font-size:0.82rem;color:var(--gray-500);">Don't have an account?</span>
+            <a href="/register" style="font-size:0.82rem;font-weight:600;color:var(--primary);margin-left:0.35rem;text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+              Register here →
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer note -->
+      <p style="text-align:center;margin-top:1.25rem;font-size:0.75rem;color:var(--gray-400);">
+        © 2026 ClearHire · Academic Project · SBERT-Based Resume Screening
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let currentRole = 'hr';
+
+    function selectRole(role) {
+      currentRole = role;
+      document.getElementById('roleInput').value = role;
+
+      const tabHR = document.getElementById('tabHR');
+      const tabUser = document.getElementById('tabUser');
+      const title = document.getElementById('cardTitle');
+      const desc = document.getElementById('cardDesc');
+      const btn = document.getElementById('loginBtn');
+
+      if (role === 'hr') {
+        tabHR.classList.add('active');
+        tabUser.classList.remove('active');
+        title.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> HR Sign In`;
+        desc.textContent = 'Enter your credentials to access the full screening dashboard.';
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In as HR`;
+        btn.style.background = '';
+      } else {
+        tabUser.classList.add('active');
+        tabHR.classList.remove('active');
+        title.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Applicant Sign In`;
+        desc.textContent = 'Sign in to submit your resume for consideration.';
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Sign In as Applicant`;
+        btn.style.background = 'linear-gradient(135deg, #10B981 0%, #0D9488 100%)';
+      }
+    }
+
+    // Restore role from query param if redirected
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('role') === 'user') selectRole('user');
+
+    // Show success banner if redirected from /register
+    if (params.get('registered') === '1') {
+      document.getElementById('successBanner').style.display = 'flex';
+    }
+
+    // Form loading state
+    document.getElementById('loginForm').addEventListener('submit', function () {
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></div> Signing in...';
+    });
+  </script>
+</body>
+
+</html>

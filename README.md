@@ -1381,3 +1381,165 @@ A comprehensive audit of the entire codebase was performed and **11 critical bug
 > Resume Screening & Authenticity Validation Using Decision Tree Classification
 >
 > Technology Stack: FastAPI · Sentence-BERT · scikit-learn · spaCy · PyMuPDF · Python 3.10
+
+---
+
+## 23. PostgreSQL Migration
+
+### Overview
+
+The database backend was migrated from **SQLite** (`aiosqlite`) to **PostgreSQL** (`asyncpg`).
+All application logic, routes, models, and UI remain completely unchanged.
+Only the database connection layer was modified.
+
+The migration uses **environment variables** for all credentials, making it trivial to switch between machines (e.g., your laptop → a friend's laptop) by simply updating the `.env` file.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `app/models/database.py` | Replaced SQLite URL + `aiosqlite` driver with PostgreSQL URL + `asyncpg` |
+| `requirements.txt` | Removed `aiosqlite`, added `asyncpg>=0.29.0` and `psycopg2-binary>=2.9.9` |
+| `Dockerfile` | Removed SQLite `data/` dir creation; added PostgreSQL `ENV` defaults |
+
+### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Template for required environment variables |
+| `DATABASE_MIGRATION.md` | Complete migration record and change log |
+
+### New Dependencies
+
+```
+asyncpg>=0.29.0        # Async PostgreSQL driver (used by SQLAlchemy)
+psycopg2-binary>=2.9.9 # Sync driver for tooling compatibility
+```
+
+Install with:
+```bash
+pip install asyncpg psycopg2-binary
+```
+
+### Environment Variables Required
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `POSTGRES_HOST` | `localhost` | PostgreSQL server hostname or IP |
+| `POSTGRES_PORT` | `5432` | PostgreSQL port |
+| `POSTGRES_DB` | `resume_screener` | Database name |
+| `POSTGRES_USER` | `postgres` | Database user |
+| `POSTGRES_PASSWORD` | *(required)* | Database password |
+| `DATABASE_URL` | *(optional)* | Full connection URL — overrides all of the above |
+
+### Database Setup
+
+1. **Install PostgreSQL**: https://www.postgresql.org/download/
+
+2. **Create the database:**
+   ```sql
+   CREATE DATABASE resume_screener;
+   ```
+
+3. **Create `.env` file** from template:
+   ```powershell
+   copy .env.example .env
+   # Edit .env and set POSTGRES_PASSWORD
+   ```
+
+### How to Run with PostgreSQL (Windows PowerShell)
+
+```powershell
+# Set environment variables
+$env:POSTGRES_HOST     = "localhost"
+$env:POSTGRES_PORT     = "5432"
+$env:POSTGRES_DB       = "resume_screener"
+$env:POSTGRES_USER     = "postgres"
+$env:POSTGRES_PASSWORD = "your_password_here"
+
+# Install new dependencies
+pip install asyncpg psycopg2-binary
+
+# Start the app (tables auto-created on first startup)
+python app/main.py
+```
+
+### Switching to Another Machine (e.g. a Friend's Laptop)
+
+No code changes needed. Update env vars:
+
+```powershell
+$env:POSTGRES_HOST     = "friends-machine-ip"
+$env:POSTGRES_USER     = "their_postgres_user"
+$env:POSTGRES_PASSWORD = "their_password"
+python app/main.py
+```
+
+Or use a full URL:
+```powershell
+$env:DATABASE_URL = "postgresql+asyncpg://user:pass@host:5432/resume_screener"
+python app/main.py
+```
+
+### Application Logic — Intentionally Unchanged
+
+All of the following were **not modified**: authentication, resume upload, parsing, NLP preprocessing,
+validation features, screening logic, XGBoost/Decision Tree classifier, SBERT embedder, all API routes,
+all frontend templates and static assets, folder structure, and file naming conventions.
+
+For the full change log, see [`DATABASE_MIGRATION.md`](./DATABASE_MIGRATION.md).
+
+---
+
+## Final Phase — Project Completion
+
+The following enhancements were implemented in the final phase to fulfill all outstanding project proposal requirements:
+
+### 5.1 System Integration & Unit Testing
+- Added `auth_client` and `client` session-scoped fixtures in `tests/conftest.py`
+- Fixed existing tests to work with the auth middleware
+- Added `TestAuthFlow` (4 tests), `TestSHAPExplainability` (3 tests), `TestExportEndpoints` (5 tests)
+- **Result: 116/116 tests pass ✅**
+
+### 5.2 Decision Tree Explainability
+- Uncommented the SHAP computation in `app/models/classifier.py`
+- Real XGBoost model uses native SHAP; fallback uses heuristic approximation
+- Top 3 contributing features returned in every prediction under `classification.top_features`
+- "Decision Explainability" card with color-coded contribution bars added to both Single Resume and Batch pages
+
+### 5.3 Skill Gap Analytics (Visual Charts)
+- Chart.js 4.4 integrated via CDN in `index.html` and `batch.html`
+- Live animated doughnut chart showing matched / missing / extra skill percentages
+- Center label displays the match rate; color-coded legend with counts
+
+### 5.4 PostgreSQL Database Integration
+- Already complete — `asyncpg` + SQLAlchemy async engine, `python-dotenv` loads `.env` at startup
+
+### 5.5 User Authentication & Login Interface
+- Already complete — session-based auth middleware, `/login`, `/logout`, HR role badge
+
+### 5.6 Exportable Reporting
+- **Batch CSV Export:** "Download CSV" button in batch results → client-side export with all scores, skills
+- **Analytics Metrics Export:** "Export Metrics CSV" button on analytics page → `/api/export/analytics` endpoint returns model accuracy, F1, and full feature importance as downloadable CSV
+
+---
+
+## How to Run
+
+```powershell
+# From the resume-screener directory
+..\venv\Scripts\python.exe app/main.py
+```
+
+Open: **http://localhost:8000**  
+Login: `admin` / `hr2026`
+
+## How to Run Tests
+
+```powershell
+..\venv\Scripts\python.exe -m pytest tests/ -v
+```
+
+---
+
+> **Built by SARSHIJ KARN**

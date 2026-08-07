@@ -213,7 +213,8 @@ class TestComputeAllFeatures:
             'experience_graduation_gap', 'skill_density', 'achievement_count',
             'generic_phrase_score', 'gap_years', 'keyword_stuffing_score',
             'years_experience', 'num_certifications', 'num_skills',
-            'education_level_encoded', 'has_previous_job',
+            'education_level_encoded',
+            'skill_experience_alignment'
         }
         assert set(features.keys()) == expected_keys
 

@@ -1,0 +1,13 @@
+# Step 1: Activate venv (only needed once per terminal session)
+..\venv\Scripts\activate
+
+# Step 2: Run the server
+..\venv\Scripts\python.exe app/main.py
+
+echo "Open http://localhost:8000 in your browser"
+
+
+
+
+HR: admin / hr2026
+Applicant: applicant / apply2026

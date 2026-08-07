@@ -2,7 +2,7 @@
 Validation Feature Extraction
 Detects keyword stuffing, generic phrases, gaps, inconsistencies.
 17 features total: 12 original + 5 new (years_experience, num_certifications,
-num_skills, education_level_encoded, has_previous_job).
+num_skills, education_level_encoded, skill_experience_alignment).
 
 BUG FIXES Applied:
   - BUG 8:  compute_keyword_stuffing_score now filters out stopwords before
@@ -357,7 +357,7 @@ def compute_skill_experience_alignment(resume_text: str, extracted_skills: list)
 def compute_all_validation_features(resume_text: str, job_description: str,
                                    **kwargs) -> dict:
     """
-    Compute all 17 validation features used as input to the Decision Tree classifier.
+    Compute all 17 validation features used as input to the XGBoost classifier.
     Returns a dict with all feature names matching the training columns exactly.
     """
     gaps = detect_gaps(resume_text)
@@ -380,6 +380,7 @@ def compute_all_validation_features(resume_text: str, job_description: str,
         'num_certifications': float(count_certifications(resume_text)),
         'num_skills': float(len(kwargs.get('extracted_skills', []))),
         'education_level_encoded': float(extract_education_level(resume_text)),
-        'has_previous_job': float(has_previous_job(resume_text)),
+        # 'has_previous_job': float(has_previous_job(resume_text)),
         'skill_experience_alignment': compute_skill_experience_alignment(resume_text, kwargs.get('extracted_skills', [])),
+        # 'ai_plausibility_score': kwargs.get('ai_plausibility_score', 0.5),
     }

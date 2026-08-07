@@ -74,3 +74,37 @@ def empty_resume():
 @pytest.fixture
 def generic_resume():
     return GENERIC_PHRASE_RESUME
+
+
+# ── HTTP Client Fixtures ─────────────────────────────────────────────────────
+# These fixtures provide pre-configured TestClient instances so individual
+# tests don't need to manage session setup themselves.
+
+from fastapi.testclient import TestClient
+from app.main import app
+
+
+@pytest.fixture(scope="session")
+def client():
+    """
+    Unauthenticated test client.
+    Use for login page tests and routes that don't require auth.
+    """
+    with TestClient(app, raise_server_exceptions=True) as c:
+        yield c
+
+
+@pytest.fixture(scope="session")
+def auth_client():
+    """
+    Pre-authenticated HR (admin) test client.
+    Logs in once per test session; session cookie is reused for all requests.
+    Required for any route behind the require_auth() middleware.
+    """
+    with TestClient(app, raise_server_exceptions=True) as c:
+        resp = c.post("/login", data={"username": "admin", "password": "hr2026"})
+        # Login should redirect or return 200
+        assert resp.status_code in (200, 302, 303), (
+            f"auth_client login failed: {resp.status_code} — {resp.text[:300]}"
+        )
+        yield c
