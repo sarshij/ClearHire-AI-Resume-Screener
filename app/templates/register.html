@@ -78,10 +78,10 @@
     <div class="login-header">
       <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:1rem;">
         <span class="live-dot"></span>
-        AI Resume Screening Platform
+        SBERT Resume Screening Platform
       </div>
       <h1>Create your <span class="grad">Account</span></h1>
-      <p>Register to access ClearHire and start using the AI-powered resume screener.</p>
+      <p>Register to access ClearHire and start using the SBERT-powered resume screener.</p>
     </div>
 
     <!-- Role Selector: Applicant default -->
@@ -128,7 +128,7 @@
           </svg>
           Create Applicant Account
         </h2>
-        <p class="card-description" id="cardDesc">Register to submit your resume for AI-powered screening.</p>
+        <p class="card-description" id="cardDesc">Register to submit your resume for SBERT-powered screening.</p>
       </div>
       <div class="card-body">
 
@@ -255,7 +255,7 @@
     if (role === 'user') {
       tabUser.classList.add('active'); tabHR.classList.remove('active');
       title.innerHTML = svgUser + ' Create Applicant Account';
-      desc.textContent = 'Register to submit your resume for AI-powered screening.';
+      desc.textContent = 'Register to submit your resume for SBERT-powered screening.';
       btn.style.background = 'linear-gradient(135deg,#10B981 0%,#0D9488 100%)';
       btn.innerHTML = btnSvg + ' Create Applicant Account';
     } else {

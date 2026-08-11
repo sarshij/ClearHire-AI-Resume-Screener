@@ -205,13 +205,12 @@
           <div class="val-item"><div class="val-label">NER Engine</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">spaCy en_core_web_md</div></div>
           <div class="val-item"><div class="val-label">Validation Features</div><div class="val-value">17</div></div>
           <div class="val-item"><div class="val-label">Scoring Weights</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">60% / 25% / 15%</div></div>
-          <div class="val-item"><div class="val-label">LLM Verifier</div><div class="val-value" style="font-size:0.8rem;font-family:var(--font);">Groq llama-3.3-70b</div></div>
           <div class="val-item"><div class="val-label">Format Detection</div><div class="val-value" style="font-size:0.8rem;font-family:var(--font);">NER + Regex + Penalty</div></div>
           <div class="val-item"><div class="val-label">Rate Limits</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">25/min · 100/min batch</div></div>
           <div class="val-item"><div class="val-label">Max File Size</div><div class="val-value">5 MB</div></div>
           <div class="val-item"><div class="val-label">Backend</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">FastAPI + Python</div></div>
           <div class="val-item"><div class="val-label">Output Classes</div><div class="val-value">4</div></div>
-          <div class="val-item"><div class="val-label">PDF Parsing</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">pdfplumber + OCR</div></div>
+          <div class="val-item"><div class="val-label">PDF Parsing</div><div class="val-value" style="font-size:0.85rem;font-family:var(--font);">pdfplumber</div></div>
         </div>
 
         <!-- Pipeline flow SVG -->
@@ -222,7 +221,7 @@
               <!-- Resume -->
               <rect x="10" y="20" width="100" height="40" rx="8" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
               <text x="60" y="36" text-anchor="middle" font-size="9" font-weight="600" fill="#2563EB">Resume</text>
-              <text x="60" y="50" text-anchor="middle" font-size="8" fill="#64748B">PDF/DOCX/TXT</text>
+              <text x="60" y="50" text-anchor="middle" font-size="8" fill="#64748B">PDF/DOCX</text>
               <!-- arrow -->
               <line x1="110" y1="40" x2="130" y2="40" stroke="#CBD5E1" stroke-width="1.5" marker-end="url(#arr)"/>
 
@@ -365,7 +364,7 @@ async function loadAnalytics() {
 function buildAnalyticsData(model, classData, statsData) {
   const totalSamples = statsData?.total_samples || Object.values(PROJECT_METRICS.class_distribution).reduce((a, b) => a + b, 0);
   const testSamples = PROJECT_METRICS.test_samples;
-  const featureCount = (model.feature_names && model.feature_names.length) || PROJECT_METRICS.validation_features;
+  const featureCount = 17; // Hardcoded to 17 per user request, bypassing model.feature_names.length
 
   const accuracy = model.test_accuracy > 0 ? model.test_accuracy : PROJECT_METRICS.test_accuracy;
   const f1 = model.test_f1 > 0 ? model.test_f1 : PROJECT_METRICS.test_f1_weighted;
@@ -566,20 +565,29 @@ async function loadHistory() {
             <th>Date</th>
             <th>Filename</th>
             <th>Match Score</th>
-            <th>AI Plausibility</th>
             <th>Classification</th>
+            <th style="text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody>
           ${data.history.map(r => {
             const date = new Date(r.created_at).toLocaleString();
-            const info = clsIcon[r.classification] || { badge:'', icon:'?' };
-            return `<tr>
+            const info = clsIcon[r.classification] || { badge:'badge-info', icon:'?' };
+            // Serialize row to pass into onclick safely
+            const safeId = r.id;
+            return `<tr id="hist-row-${safeId}">
               <td style="font-size:0.75rem;color:var(--gray-500);">${date}</td>
               <td style="font-weight:500;max-width:180px;" class="truncate" title="${r.filename}">${r.filename}</td>
               <td style="font-family:var(--font-mono);">${(r.final_match_score||0).toFixed(3)}</td>
-              <td style="font-family:var(--font-mono);">${(r.ai_plausibility_score||0).toFixed(3)}</td>
               <td><span class="cls-badge ${info.badge}">${info.icon} ${r.classification}</span></td>
+              <td style="text-align:center;white-space:nowrap;">
+                <button onclick="viewCandidate(${safeId})" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.8rem;cursor:pointer;margin-right:0.4rem;font-family:var(--font);font-weight:600;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+                  👁 View
+                </button>
+                <button onclick="deleteRecord(${safeId})" style="background:var(--error,#ef4444);color:#fff;border:none;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.8rem;cursor:pointer;font-family:var(--font);font-weight:600;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+                  🗑 Delete
+                </button>
+              </td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -611,9 +619,376 @@ async function exportMetricsCSV() {
   }
 }
 
+
+/* ── History Detail Modal ────────────────────────────────── */
+// Stores all history records loaded from /api/history for modal lookup
+let _historyRecords = [];
+let _currentPage = 1;
+const _pageSize = 25;
+
+async function loadHistory() {
+  const historyBody = document.getElementById('historyBody');
+  if (!historyBody) return;
+  try {
+    const resp = await fetch('/api/history?limit=1000');
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+    const data = await resp.json();
+    if (!data.history || !data.history.length) {
+      historyBody.innerHTML = '<p class="text-muted text-sm" style="padding:1.5rem 0;">No analyses recorded yet.</p>';
+      return;
+    }
+    // Store for modal lookup and pagination
+    _historyRecords = data.history;
+    _currentPage = 1;
+    renderHistoryPage();
+
+  } catch(err) {
+    historyBody.innerHTML = `<p class="text-muted text-sm" style="color:var(--error);">Could not load history: ${err.message}</p>`;
+  }
+}
+
+function renderHistoryPage() {
+  const historyBody = document.getElementById('historyBody');
+  const clsIcon = {
+    'Authentic':       { badge:'badge-success', icon:'✓' },
+    'Suspicious':      { badge:'badge-warning', icon:'⚠' },
+    'Potentially Fake':{ badge:'badge-error',   icon:'✗' },
+    'Not a Resume':    { badge:'badge-info',    icon:'?' },
+    'Pending':         { badge:'badge-info',    icon:'⏳' },
+  };
+
+  const startIndex = (_currentPage - 1) * _pageSize;
+  const pageData = _historyRecords.slice(startIndex, startIndex + _pageSize);
+  const totalPages = Math.ceil(_historyRecords.length / _pageSize);
+
+  historyBody.innerHTML = `
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Filename</th>
+          <th>Match Score</th>
+          <th>Classification</th>
+          <th style="text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${pageData.map(r => {
+          const date = new Date(r.created_at).toLocaleString();
+          const info = clsIcon[r.classification] || { badge:'badge-info', icon:'?' };
+          const safeId = r.id;
+          return '<tr id="hist-row-' + safeId + '">' +
+            '<td style="font-size:0.75rem;color:var(--gray-500);">' + date + '</td>' +
+            '<td style="font-weight:500;max-width:180px;" class="truncate" title="' + r.filename + '">' + r.filename + '</td>' +
+            '<td style="font-family:var(--font-mono);">' + (r.final_match_score||0).toFixed(3) + '</td>' +
+            '<td><span class="cls-badge ' + info.badge + '">' + info.icon + ' ' + r.classification + '</span></td>' +
+            '<td style="text-align:center;white-space:nowrap;">' +
+              '<button onclick="viewCandidate(' + safeId + ')" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.8rem;cursor:pointer;margin-right:0.4rem;font-family:var(--font);font-weight:600;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">' +
+                '👁 View' +
+              '</button>' +
+              '<button onclick="deleteRecord(' + safeId + ')" style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.8rem;cursor:pointer;font-family:var(--font);font-weight:600;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">' +
+                '🗑 Delete' +
+              '</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('')}
+      </tbody>
+    </table>
+    
+    <!-- Pagination Controls -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding:0 0.5rem;">
+      <button onclick="changePage(-1)" ${_currentPage === 1 ? 'disabled' : ''} 
+              style="padding:0.4rem 1rem; border-radius:6px; border:1px solid var(--border); background:${_currentPage === 1 ? '#f3f4f6' : '#fff'}; cursor:${_currentPage === 1 ? 'not-allowed' : 'pointer'}; color:var(--gray-700); font-weight:500;">
+        &laquo; Previous
+      </button>
+      <span style="font-size:0.85rem; color:var(--gray-600);">
+        Page ${_currentPage} of ${totalPages || 1} (${_historyRecords.length} total)
+      </span>
+      <button onclick="changePage(1)" ${_currentPage >= totalPages ? 'disabled' : ''} 
+              style="padding:0.4rem 1rem; border-radius:6px; border:1px solid var(--border); background:${_currentPage >= totalPages ? '#f3f4f6' : '#fff'}; cursor:${_currentPage >= totalPages ? 'not-allowed' : 'pointer'}; color:var(--gray-700); font-weight:500;">
+        Next &raquo;
+      </button>
+    </div>
+  `;
+}
+
+function changePage(direction) {
+  const totalPages = Math.ceil(_historyRecords.length / _pageSize);
+  const newPage = _currentPage + direction;
+  if (newPage >= 1 && newPage <= totalPages) {
+    _currentPage = newPage;
+    renderHistoryPage();
+  }
+}
+
+
+/**
+ * viewCandidate(id)
+ * Finds the record from in-memory cache, populates the history detail
+ * modal, and shows it as an overlay.
+ *
+ * DB full_results structure (confirmed):
+ *   res.classification  → object { classification, confidence, prob_Authentic, prob_Suspicious, prob_Potentially Fake, top_features }
+ *   res.validation      → object with all 17 feature values
+ *   res.scores          → { semantic_similarity, skill_overlap_score, experience_relevance_score, final_match_score }
+ *   res.skills          → { matched: [], missing: [], extra: [] }
+ */
+function viewCandidate(id) {
+  const r = _historyRecords.find(x => x.id === id);
+  if (!r) { alert('Record not found. Please refresh the page.'); return; }
+
+  // Parse full_results (may be a stringified JSON in some DB drivers)
+  let res = r.full_results || {};
+  if (typeof res === 'string') {
+    try { res = JSON.parse(res); } catch(e) { console.error('Failed to parse full_results', e); res = {}; }
+  }
+
+  // ── Classification ────────────────────────────────────────────────────────
+  // res.classification is a nested object (confirmed by DB inspection)
+  const clsObj  = (typeof res.classification === 'object' && res.classification) ? res.classification : {};
+  const cls      = clsObj.classification || r.classification || '—';
+  // confidence lives inside the classification object
+  const confidence = clsObj.confidence ?? 0;
+  // final_match_score is in scores or validation
+  const matchScore = (res.scores && res.scores.final_match_score != null)
+                    ? res.scores.final_match_score
+                    : (res.validation && res.validation.final_match_score != null)
+                    ? res.validation.final_match_score
+                    : (r.final_match_score ?? 0);
+
+  // Classification badge colours
+  const clsColors = {
+    'Authentic': '#10b981', 'Suspicious': '#f59e0b',
+    'Potentially Fake': '#ef4444', 'Not a Resume': '#6b7280', 'Pending': '#6b7280'
+  };
+  const clsColor = clsColors[cls] || '#6b7280';
+
+  // ── Confidence ring ───────────────────────────────────────────────────────
+  const confPct = Math.min(Math.max(confidence, 0), 1);
+  const circumference = 188.5;
+  const dashOffset = circumference - confPct * circumference;
+
+  // ── Probability bars (from the classification object) ─────────────────────
+  const probAuth = clsObj.prob_Authentic ?? 0;
+  const probSusp = clsObj.prob_Suspicious ?? clsObj['prob_Suspicious'] ?? 0;
+  const probFake = clsObj['prob_Potentially Fake'] ?? 0;
+
+  // ── Validation features (17 features from res.validation) ────────────────
+  const features = Object.assign({}, res.validation || {}, res.scores || {});
+
+  const featureLabels = {
+    semantic_similarity: 'Semantic Similarity', skill_overlap_score: 'Skill Overlap',
+    experience_relevance_score: 'Exp. Relevance', final_match_score: 'Final Match',
+    overlapping_jobs: 'Overlapping Jobs', promotion_speed: 'Promotion Speed',
+    experience_graduation_gap: 'Exp/Grad Gap', skill_density: 'Skill Density',
+    achievement_count: 'Achievements', generic_phrase_score: 'Generic Phrases',
+    gap_years: 'Gap Years', keyword_stuffing_score: 'Keyword Stuffing',
+    years_experience: 'Years Exp.', num_certifications: 'Certifications',
+    num_skills: 'Skills Count', education_level_encoded: 'Education Level',
+    skill_experience_alignment: 'Skill Alignment'
+  };
+
+  const featRows = Object.entries(featureLabels).map(([key, label]) => {
+    const val = features[key];
+    const display = (val !== undefined && val !== null)
+                    ? (typeof val === 'number' ? val.toFixed(3) : val)
+                    : '—';
+    return `<div class="val-item"><div class="val-label">${label}</div><div class="val-value" style="font-size:0.9rem;font-family:var(--font-mono);">${display}</div></div>`;
+  }).join('');
+
+  // ── Skills (matched/missing use confirmed key names from DB) ──────────────
+  const skills = res.skills || {};
+  const matchedList = skills.matched || skills.matched_skills || [];
+  const missingList = skills.missing || skills.missing_skills || [];
+  const matchedSkills = matchedList.join(', ') || '—';
+  const missingSkills = missingList.slice(0, 10).join(', ') || '—';
+
+  // ── Top features from classifier ──────────────────────────────────────────
+  const topFeatures = clsObj.top_features || [];
+  const topFeatHtml = topFeatures.length
+    ? topFeatures.map(f =>
+        `<div style="display:flex;justify-content:space-between;font-size:0.8rem;padding:0.2rem 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--gray-600);">${f.feature.replace(/_/g,' ')}</span>
+          <span style="font-family:var(--font-mono);color:${f.contribution >= 0 ? '#10b981' : '#ef4444'};">${f.contribution > 0 ? '+' : ''}${f.contribution.toFixed(3)}</span>
+        </div>`).join('')
+    : '<span style="color:var(--gray-400);font-size:0.8rem;">No feature data</span>';
+
+  // ── LLM verification badge ────────────────────────────────────────────────
+  let llmHtml = '';
+  if (res.llm_verification) {
+    const lv = res.llm_verification;
+    const lvColor = lv.verdict === 'AUTHENTIC' ? '#10b981' : lv.verdict === 'SUSPICIOUS' ? '#f59e0b' : '#ef4444';
+    llmHtml = `<div style="margin-top:0.75rem;padding:0.6rem 0.9rem;border-radius:8px;background:${lvColor}18;border:1px solid ${lvColor}40;font-size:0.82rem;color:var(--gray-700);">
+      <strong style="color:${lvColor};">LLM Verification: ${lv.verdict}</strong>
+      ${lv.reason ? `<br><span style="color:var(--gray-500);">${lv.reason}</span>` : ''}
+    </div>`;
+  }
+
+  // ── Resume Preview ────────────────────────────────────────────────────────
+  const resumePreview = res.resume_preview || '';
+
+  // ── Inject into modal ─────────────────────────────────────────────────────
+  document.getElementById('histModalFilename').textContent = r.filename || '—';
+  document.getElementById('histModalDate').textContent = r.created_at ? new Date(r.created_at).toLocaleString() : '—';
+  document.getElementById('histModalClsBadge').textContent = cls;
+  document.getElementById('histModalClsBadge').style.background = clsColor + '22';
+  document.getElementById('histModalClsBadge').style.color = clsColor;
+  document.getElementById('histModalClsBadge').style.border = `1px solid ${clsColor}55`;
+  document.getElementById('histModalMatchScore').textContent = matchScore.toFixed(3);
+  document.getElementById('histModalConfLabel').textContent = (confPct * 100).toFixed(1) + '%';
+  document.getElementById('histModalConfRing').style.strokeDashoffset = dashOffset;
+  document.getElementById('histModalConfRing').style.stroke = clsColor;
+  document.getElementById('histModalLLM').innerHTML = llmHtml;
+  document.getElementById('histModalProbAuth').style.width = (probAuth * 100).toFixed(1) + '%';
+  document.getElementById('histModalProbAuthVal').textContent = (probAuth * 100).toFixed(1) + '%';
+  document.getElementById('histModalProbSusp').style.width = (probSusp * 100).toFixed(1) + '%';
+  document.getElementById('histModalProbSuspVal').textContent = (probSusp * 100).toFixed(1) + '%';
+  document.getElementById('histModalProbFake').style.width = (probFake * 100).toFixed(1) + '%';
+  document.getElementById('histModalProbFakeVal').textContent = (probFake * 100).toFixed(1) + '%';
+  document.getElementById('histModalFeatures').innerHTML = featRows;
+  document.getElementById('histModalMatchedSkills').textContent = matchedSkills;
+  document.getElementById('histModalMissingSkills').textContent = missingSkills;
+
+  // Inject top features if element exists
+  const topFeatEl = document.getElementById('histModalTopFeatures');
+  if (topFeatEl) topFeatEl.innerHTML = topFeatHtml;
+
+  // Inject resume preview if element exists
+  const previewEl = document.getElementById('histModalResumePreview');
+  if (previewEl) previewEl.textContent = resumePreview;
+
+  document.getElementById('historyDetailModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+/** Close the history detail modal */
+function closeHistoryModal() {
+  document.getElementById('historyDetailModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/**
+ * deleteRecord(id)
+ * Prompts for confirmation, calls DELETE /api/history/{id}, then
+ * removes the row from the DOM without a full page reload.
+ */
+async function deleteRecord(id) {
+  if (!confirm(`Delete this record permanently? This cannot be undone.`)) return;
+  try {
+    const resp = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error ${resp.status}`);
+    }
+    // Remove from local cache
+    _historyRecords = _historyRecords.filter(r => r.id !== id);
+    // Remove row from DOM
+    const row = document.getElementById(`hist-row-${id}`);
+    if (row) {
+      row.style.transition = 'opacity 0.3s';
+      row.style.opacity = '0';
+      setTimeout(() => row.remove(), 300);
+    }
+  } catch(err) {
+    alert('Failed to delete: ' + err.message);
+  }
+}
+
 /* ── Init ─────────────────────────────────────────────────── */
 loadAnalytics();
 loadHistory();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     History Detail Modal
+     Shows full screening details when HR clicks "View" on a row
+     ═══════════════════════════════════════════════════════════ -->
+<div id="historyDetailModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,30,0.65);z-index:9999;overflow-y:auto;padding:2rem 1rem;backdrop-filter:blur(5px);">
+  <div style="max-width:860px;margin:0 auto;background:#fff;border-radius:14px;padding:2rem;position:relative;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);border:1px solid #e5e7eb;">
+
+    <!-- Header row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);">Resume Record</div>
+        <h2 style="margin:0.25rem 0 0;font-size:1.1rem;font-weight:700;color:var(--gray-900);" id="histModalFilename">—</h2>
+        <div style="font-size:0.78rem;color:var(--gray-400);margin-top:0.2rem;" id="histModalDate">—</div>
+      </div>
+      <button onclick="closeHistoryModal()" style="background:var(--gray-100);border:1px solid var(--border);border-radius:8px;padding:0.45rem 1rem;cursor:pointer;font-size:0.85rem;font-family:var(--font);display:flex;align-items:center;gap:0.4rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Close
+      </button>
+    </div>
+
+    <!-- Classification + Confidence -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;background:var(--gray-50);border-radius:10px;padding:1.25rem;border:1px solid var(--border);margin-bottom:1.5rem;">
+      <div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.5rem;">Classification</div>
+        <span id="histModalClsBadge" style="display:inline-block;padding:0.4rem 1.1rem;border-radius:999px;font-weight:700;font-size:0.9rem;">—</span>
+        <div style="margin-top:0.8rem;font-size:0.82rem;color:var(--gray-500);">Match Score: <strong id="histModalMatchScore" style="color:var(--gray-900);">—</strong></div>
+        <div id="histModalLLM"></div>
+      </div>
+      <!-- Confidence ring -->
+      <div style="text-align:center;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.5rem;">Confidence</div>
+        <div style="position:relative;width:72px;height:72px;display:inline-block;">
+          <svg viewBox="0 0 72 72" width="72" height="72" style="transform:rotate(-90deg);">
+            <circle cx="36" cy="36" r="30" fill="none" stroke="var(--gray-200)" stroke-width="7"/>
+            <circle id="histModalConfRing" cx="36" cy="36" r="30" fill="none" stroke="var(--primary)" stroke-width="7"
+              stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke-linecap="round" style="transition:stroke-dashoffset 0.6s ease;"/>
+          </svg>
+          <div id="histModalConfLabel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-weight:700;font-size:0.85rem;color:var(--gray-800);">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Probability Bars -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.75rem;">Classification Probabilities</div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span style="width:120px;font-size:0.82rem;color:var(--gray-600);">Authentic</span>
+          <div style="flex:1;background:var(--gray-200);border-radius:99px;height:8px;overflow:hidden;">
+            <div id="histModalProbAuth" style="height:100%;background:#10b981;border-radius:99px;transition:width 0.5s ease;width:0%;"></div>
+          </div>
+          <span id="histModalProbAuthVal" style="width:42px;font-size:0.8rem;font-weight:600;font-family:var(--font-mono);text-align:right;">0%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span style="width:120px;font-size:0.82rem;color:var(--gray-600);">Suspicious</span>
+          <div style="flex:1;background:var(--gray-200);border-radius:99px;height:8px;overflow:hidden;">
+            <div id="histModalProbSusp" style="height:100%;background:#f59e0b;border-radius:99px;transition:width 0.5s ease;width:0%;"></div>
+          </div>
+          <span id="histModalProbSuspVal" style="width:42px;font-size:0.8rem;font-weight:600;font-family:var(--font-mono);text-align:right;">0%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span style="width:120px;font-size:0.82rem;color:var(--gray-600);">Potentially Fake</span>
+          <div style="flex:1;background:var(--gray-200);border-radius:99px;height:8px;overflow:hidden;">
+            <div id="histModalProbFake" style="height:100%;background:#ef4444;border-radius:99px;transition:width 0.5s ease;width:0%;"></div>
+          </div>
+          <span id="histModalProbFakeVal" style="width:42px;font-size:0.8rem;font-weight:600;font-family:var(--font-mono);text-align:right;">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Validation Features Grid -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.75rem;">17 Validation Features</div>
+      <div id="histModalFeatures" class="val-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.75rem;"></div>
+    </div>
+
+    <!-- Skills -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div style="background:var(--gray-50);border-radius:8px;padding:1rem;border:1px solid var(--border);">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#10b981;margin-bottom:0.5rem;">✓ Matched Skills</div>
+        <div id="histModalMatchedSkills" style="font-size:0.82rem;color:var(--gray-700);line-height:1.6;">—</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:8px;padding:1rem;border:1px solid var(--border);">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#ef4444;margin-bottom:0.5rem;">✗ Missing Skills</div>
+        <div id="histModalMissingSkills" style="font-size:0.82rem;color:var(--gray-700);line-height:1.6;">—</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>

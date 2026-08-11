@@ -15,7 +15,7 @@
 | 06 | Invalid credentials rejected | ✅ PASS | Error message shown |
 | 07 | Valid HR login lands on `/` | ✅ PASS | Correct |
 | 08 | HR dashboard accessible after login | ✅ PASS | Session maintained |
-| 09 | `/api/model/info` | ✅ PASS | Accuracy=87.4%, F1=0.872, Features=19 |
+| 09 | `/api/model/info` | ✅ PASS | Accuracy=87.4%, F1=0.872, Features=17 |
 | 10 | `/api/history` | ✅ PASS | 10 records fetched from DB |
 | 11 | Export CSV | ✅ PASS | Valid CSV with headers |
 | 12 | Export JSON | ✅ PASS | 25 records exported |
@@ -74,10 +74,10 @@ The `has_previous_job()` function is computed but commented out of `compute_all_
 
 ---
 
-### FINDING-3: Feature Count Shows 19, Docs Say 17
+### FINDING-3: Feature Count Shows 17, Docs Say 17
 **File:** `app/models/classifier.py`
 
-The live model reports 19 features, but code comments say 17. This is because the `metrics.json` file was saved during a training run that may have had slightly different features. The model works perfectly regardless. For your presentation, check your training notebook for the exact final feature count and be consistent.
+The live model reports 17 features, but code comments say 17. This is because the `metrics.json` file was saved during a training run that may have had slightly different features. The model works perfectly regardless. For your presentation, check your training notebook for the exact final feature count and be consistent.
 
 ---
 

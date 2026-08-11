@@ -738,13 +738,41 @@ async def get_history(limit: int = 50, offset: int = 0):
                     "candidate_name": r.candidate_name,
                     "classification": r.classification,
                     "final_match_score": r.final_match_score,
-                    "ai_plausibility_score": r.ai_plausibility_score,
-                    "created_at": r.created_at.isoformat() if r.created_at else None
+                    "created_at": r.created_at.isoformat() if r.created_at else None,
+                    # Include full_results so the frontend can render the detail modal
+                    "full_results": r.full_results or {}
                 })
             return {"status": "success", "history": history}
     except Exception as e:
         logger.error(f"Failed to fetch history: {e}")
         raise HTTPException(500, "Could not fetch history")
+
+@app.delete("/api/history/{record_id}")
+async def delete_history_record(record_id: int, request: Request):
+    """Delete a single ResumeAnalysis record by its primary key.
+    Only authenticated HR users can delete records."""
+    redirect = require_hr(request)
+    if redirect:
+        raise HTTPException(403, "Authentication required")
+    try:
+        from app.models.database import async_session, ResumeAnalysis
+        from sqlalchemy import select
+        async with async_session() as session:
+            stmt = select(ResumeAnalysis).where(ResumeAnalysis.id == record_id)
+            result = await session.execute(stmt)
+            record = result.scalar_one_or_none()
+            if record is None:
+                raise HTTPException(404, "Record not found")
+            await session.delete(record)
+            await session.commit()
+            logger.info(f"Deleted analysis record id={record_id}")
+            return {"status": "success", "message": f"Record {record_id} deleted"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete record {record_id}: {e}")
+        raise HTTPException(500, "Could not delete record")
+
 
 @app.get("/api/export")
 async def export_data(format: str = 'csv'):

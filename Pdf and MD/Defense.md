@@ -16,7 +16,7 @@
 4. [Literature Review & Research Gap](#4-literature-review--research-gap)
 5. [System Architecture](#5-system-architecture)
 6. [Complete NLP & ML Pipeline (How It Works)](#6-complete-nlp--ml-pipeline-how-it-works)
-7. [Feature Engineering — All 19 Validation Features](#7-feature-engineering--all-19-validation-features)
+7. [Feature Engineering — All 17 Validation Features](#7-feature-engineering--all-19-validation-features)
 8. [The Scoring Formula (Math)](#8-the-scoring-formula-math)
 9. [Machine Learning Model](#9-machine-learning-model)
 10. [LLM-as-a-Judge (Ensemble Consensus)](#10-llm-as-a-judge-ensemble-consensus)
@@ -32,7 +32,7 @@
 
 ## 1. What Is This Project?
 
-**ClearHire** is an AI-powered Resume Screening and Authenticity Validation System. It solves two problems simultaneously:
+**ClearHire** is an SBERT-powered Resume Screening and Authenticity Validation System. It solves two problems simultaneously:
 
 1. **Matching Problem:** Does this candidate actually *match* the job description — semantically, not just by keywords?
 2. **Authenticity Problem:** Is this resume real? Is it AI-generated? Is it exaggerated or hallucinated?
@@ -102,7 +102,7 @@ As stated in the project proposal (fulfilled ✅ in this implementation):
 ### Our Novel Contribution
 We are the **first** in our academic context to combine:
 - SBERT semantic understanding
-- 19-feature rule-based authenticity validation
+- 17-feature rule-based authenticity validation
 - XGBoost classification
 - LLM-as-a-Judge ensemble consensus
 - Anonymized bias-free HR output
@@ -126,7 +126,7 @@ The system follows a **dual-track parallel pipeline** that converges at the outp
     │                           │
 [SCREENING TRACK]         [VALIDATION TRACK]
     │                           │
-[SBERT Encoding]         [19-Feature Extraction]
+[SBERT Encoding]         [17-Feature Extraction]
  all-MiniLM-L6-v2         (overlapping jobs,
     │                      skill density, gaps,
 [Cosine Similarity]        generic phrases, etc.)
@@ -196,7 +196,7 @@ Final Score = (0.60 × S_semantic) + (0.25 × S_skill) + (0.15 × S_experience)
 ```
 This formula is exactly as proposed. Semantic meaning dominates (60%), structured skills matter (25%), experience is a tiebreaker (15%).
 
-### Step 8: 19-Feature Extraction for Validation
+### Step 8: 17-Feature Extraction for Validation
 (See Section 7 for all features)
 
 ### Step 9: XGBoost Classification
@@ -216,7 +216,7 @@ All 19 features → XGBoost → Authentic / Suspicious / Potentially Fake + conf
 
 ---
 
-## 7. Feature Engineering — All 19 Validation Features
+## 7. Feature Engineering — All 17 Validation Features
 
 These are the exact features fed into the XGBoost classifier:
 
@@ -290,7 +290,7 @@ The proposal mentions "Decision Tree Classification" — XGBoost IS a Decision T
 |---|---|
 | Test Accuracy | **87.38%** |
 | Model Type | XGBoost (Gradient Boosted Decision Trees) |
-| Features Input | 19 validation features |
+| Features Input | 17 validation features |
 | Classes | Authentic (0), Suspicious (1), Potentially Fake (2) |
 | Target Accuracy (Proposal) | 80–90% ✅ **Achieved** |
 
@@ -420,7 +420,7 @@ Return JSON: {"consensus": "Agree"/"Disagree", "reasoning": "30-50 words"}
    - 📊 Classification probability bars (Authentic / Suspicious / Potentially Fake)
    - 📈 Match score cards (Semantic Sim, Skill Overlap, Exp Relevance, Final Score)
    - 🎯 Skills analysis (Matched ✓ / Missing ⚠ / Extra +)
-   - 🛡️ Validation signals grid (all 19 features with values)
+   - 🛡️ Validation signals grid (all 17 features with values)
    - 📉 SHAP explainability bars (top 3 features driving the decision)
    - 📄 Extracted Resume Text (anonymized: experience years, past roles, education, skills — NO name/contact)
    - 🤖 LLM verdict badge (emoji + 30-50 word reasoning, no "LLM" text shown)
@@ -448,7 +448,7 @@ Return JSON: {"consensus": "Agree"/"Disagree", "reasoning": "30-50 words"}
 |---|---|
 | Model Test Accuracy | **87.38%** |
 | Model Type | XGBoost (Gradient Boosting) |
-| Validation Features | **19** |
+| Validation Features | **17** |
 | SBERT Embedding Dimensions | **384** |
 | Supported File Types | PDF, DOCX, TXT, Images (OCR) |
 | Max File Size | 5 MB |
@@ -473,7 +473,7 @@ Return JSON: {"consensus": "Agree"/"Disagree", "reasoning": "30-50 words"}
 | Experience relevance scoring | ✅ | Exact formula from proposal |
 | Custom weighted score (0.6/0.25/0.15) | ✅ | Exact weights from proposal |
 | Decision Tree classification | ✅ | Upgraded to XGBoost for better accuracy |
-| 7 validation features (Table 3.1) | ✅ | Expanded to 19 features for better coverage |
+| 7 validation features (Table 3.1) | ✅ | Expanded to 17 features for better coverage |
 | PDF/DOC input support | ✅ | Plus TXT and OCR for images |
 | JD input via text or file | ✅ | Toggle between paste and upload |
 | Candidate ranking dashboard | ✅ | Batch mode with sorted table |
@@ -517,7 +517,7 @@ Return JSON: {"consensus": "Agree"/"Disagree", "reasoning": "30-50 words"}
 
 > **Q1. Traditional ATS systems already exist (like Taleo, Workday). What makes your project different?**
 
-**A:** Traditional ATS systems use TF-IDF or boolean keyword matching. They match exact words — so if a job says "Machine Learning" and a resume says "Deep Learning" or "Neural Networks", the candidate is rejected despite being qualified. Our system uses **SBERT** which converts both texts into semantic meaning vectors. "Deep Learning" and "Machine Learning" have similar vector representations, so the candidate is correctly scored. Additionally, **no commercial ATS detects AI-generated or fake resumes** — our system uniquely adds a 19-feature authenticity validation layer.
+**A:** Traditional ATS systems use TF-IDF or boolean keyword matching. They match exact words — so if a job says "Machine Learning" and a resume says "Deep Learning" or "Neural Networks", the candidate is rejected despite being qualified. Our system uses **SBERT** which converts both texts into semantic meaning vectors. "Deep Learning" and "Machine Learning" have similar vector representations, so the candidate is correctly scored. Additionally, **no commercial ATS detects AI-generated or fake resumes** — our system uniquely adds a 17-feature authenticity validation layer.
 
 ---
 
@@ -535,13 +535,13 @@ Return JSON: {"consensus": "Agree"/"Disagree", "reasoning": "30-50 words"}
 
 > **Q4. What happens if the internet goes down? Will the system crash?**
 
-**A:** No. The system is a **hybrid architecture**. Document parsing, SBERT embeddings, all 19 feature extractions, and XGBoost classification all run **100% locally and offline**. Only the LLM double-check (Groq/NVIDIA) requires internet. If the API call fails, the system catches the exception, logs the error, and uses only the local XGBoost result — gracefully. The system never crashes due to internet failure.
+**A:** No. The system is a **hybrid architecture**. Document parsing, SBERT embeddings, all 17 feature extractions, and XGBoost classification all run **100% locally and offline**. Only the LLM double-check (Groq/NVIDIA) requires internet. If the API call fails, the system catches the exception, logs the error, and uses only the local XGBoost result — gracefully. The system never crashes due to internet failure.
 
 ---
 
 > **Q5. How did you train the model? What training data did you use?**
 
-**A:** We used a combination of publicly available resume datasets (Kaggle) supplemented with manually labeled samples to create three classes: Authentic, Suspicious, and Potentially Fake. We then engineered 19 validation features based on known patterns of AI-generated and exaggerated resumes (high skill density, generic phrases, timeline inconsistencies). The XGBoost model was trained on these labeled feature vectors and evaluated on a held-out test set, achieving 87.38% accuracy.
+**A:** We used a combination of publicly available resume datasets (Kaggle) supplemented with manually labeled samples to create three classes: Authentic, Suspicious, and Potentially Fake. We then engineered 17 validation features based on known patterns of AI-generated and exaggerated resumes (high skill density, generic phrases, timeline inconsistencies). The XGBoost model was trained on these labeled feature vectors and evaluated on a held-out test set, achieving 87.38% accuracy.
 
 ---
 

@@ -135,11 +135,26 @@ def predict(features: dict | list[dict]) -> list[dict]:
         shap_vals = _compute_heuristic_shap(X, cols)
 
     results = []
-    for i, cls in enumerate(classes):
-        cls_int = int(cls)
-        label      = _LABEL_MAP.get(cls_int, 'Unknown')
-        confidence = float(probs[i][cls_int])
+    for i, _ in enumerate(classes):
+        auth_prob = float(probs[i][0])
         
+        # Apply proposed threshold logic
+        if auth_prob >= 0.80:
+            cls_int = 0
+            label = 'Authentic'
+            confidence = auth_prob
+        elif auth_prob >= 0.50:
+            cls_int = 1
+            label = 'Suspicious'
+            # If it's suspicious, we might want to just show the auth_prob as the confidence, 
+            # or the prob of suspicious. Let's show auth_prob as the defining metric, 
+            # or max prob. Actually, let's use the probability of the assigned class to be consistent.
+            confidence = float(probs[i][1]) if float(probs[i][1]) > auth_prob else auth_prob
+        else:
+            cls_int = 2
+            label = 'Potentially Fake'
+            confidence = float(probs[i][2]) if float(probs[i][2]) > auth_prob else (1.0 - auth_prob)
+            
         result = {
             'classification': label,
             'confidence': round(confidence, 4),
