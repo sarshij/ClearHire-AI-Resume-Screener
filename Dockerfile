@@ -4,6 +4,16 @@ FROM python:3.10-slim
 # Set the working directory in the container
 WORKDIR /app
 
+# Install system dependencies for Tesseract, OpenCV, Poppler (pdf2image)
+RUN apt-get update && apt-get install -y \
+    tesseract-ocr \
+    poppler-utils \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the requirements file into the container
 COPY requirements.txt .
 
@@ -25,6 +35,9 @@ ENV POSTGRES_PORT=5432
 ENV POSTGRES_DB=resume_screener
 ENV POSTGRES_USER=postgres
 ENV POSTGRES_PASSWORD=
+
+# Ensure the app user has permissions to write (needed for SQLite fallback on HF Spaces)
+RUN chmod -R 777 /app
 
 # Expose port 7860 as required by Hugging Face Spaces
 EXPOSE 7860
