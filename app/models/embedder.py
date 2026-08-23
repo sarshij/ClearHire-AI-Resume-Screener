@@ -6,8 +6,9 @@ import numpy as np
 import os
 os.environ["USE_TF"] = "0"
 os.environ["USE_TORCH"] = "1"
-os.environ["HF_HUB_OFFLINE"] = "1"
-os.environ["TRANSFORMERS_OFFLINE"] = "1"
+# Allow huggingface hub to download models if not cached
+os.environ["HF_HUB_OFFLINE"] = "0"
+os.environ["TRANSFORMERS_OFFLINE"] = "0"
 from sentence_transformers import SentenceTransformer
 
 from app.logger import setup_logger

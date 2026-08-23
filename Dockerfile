@@ -23,6 +23,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Download spaCy model for NLP features
 RUN python -m spacy download en_core_web_md --quiet 2>/dev/null || echo "Warning: Could not download spaCy model. NLP features will use fallback methods."
 
+# Pre-download SBERT model so it doesn't fail or delay on startup in Hugging Face
+RUN python -c "import os; os.environ['HF_HUB_OFFLINE']='0'; os.environ['TRANSFORMERS_OFFLINE']='0'; from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
 # Create necessary directories (data dir no longer needed – PostgreSQL is external)
 RUN mkdir -p logs scratch
 
