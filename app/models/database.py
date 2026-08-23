@@ -2,7 +2,7 @@ import os
 import hashlib
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON, ForeignKey, select
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON, ForeignKey, select, text as sqlalchemy_text
 from sqlalchemy.sql import func
 from app.logger import setup_logger
 
@@ -83,6 +83,11 @@ class ResumeAnalysis(Base):
     filename = Column(String(255), nullable=False)
     candidate_name = Column(String(255), nullable=True)
     
+    # ── Who performed this scan ────────────────────────────────────────────────
+    # Tracks the logged-in HR/user who scanned this resume so that the
+    # analytics history can be filtered per-user.
+    username = Column(String(80), nullable=True, index=True)
+    
     # Core scores
     final_match_score = Column(Float, default=0.0)
     ai_plausibility_score = Column(Float, default=0.5)
@@ -131,6 +136,28 @@ async_session = sessionmaker(
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # ── Schema migration: add 'username' column if it doesn't exist ───────────
+    # This handles existing databases that were created before the username
+    # column was added to the ResumeAnalysis model.
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(
+                sqlalchemy_text(
+                    "ALTER TABLE resume_analyses ADD COLUMN IF NOT EXISTS username VARCHAR(80)"
+                )
+            )
+            # Add an index on the new column for faster per-user queries
+            await conn.execute(
+                sqlalchemy_text(
+                    "CREATE INDEX IF NOT EXISTS ix_resume_analyses_username "
+                    "ON resume_analyses (username)"
+                )
+            )
+        logger.info("Schema migration: 'username' column verified/added.")
+    except Exception as mig_err:
+        logger.warning(f"Schema migration for 'username' column skipped or failed: {mig_err}")
+    
     logger.info("Database initialized successfully.")
 
 async def get_db():

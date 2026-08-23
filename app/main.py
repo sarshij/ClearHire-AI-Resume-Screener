@@ -13,7 +13,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -320,6 +320,8 @@ async def user_submit_resume(
                     final_match_score=0.0,
                     ai_plausibility_score=0.0,
                     classification="Pending",
+                    # Track which user submitted this resume
+                    username=request.session.get("username"),
                     full_results={"status": "pending", "submitted_by": request.session.get("username")}
                 )
                 session.add(db_record)
@@ -366,6 +368,10 @@ async def health():
         "version": "2.0",
         "model_loaded": _loaded_model is not None
     }
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(BASE / "app" / "static" / "favicon.ico")
 
 @app.post("/api/predict")
 @limiter.limit("25/minute")
@@ -489,6 +495,8 @@ async def predict_single(
                     # default to 0.5 as a neutral placeholder in the DB record
                     ai_plausibility_score=0.5,
                     classification=classification['classification'],
+                    # Track which HR user performed this single scan
+                    username=request.session.get("username"),
                     full_results=result_data
                 )
                 session.add(db_analysis)
@@ -556,7 +564,10 @@ async def predict_batch(
             batch_jobs[job_id]["errors"].append(f"Failed to read {resume.filename}: {e}")
             batch_jobs[job_id]["completed"] += 1
 
-    logger.info(f"Batch predict started: {len(resume_data)} files, Job ID: {job_id}")
+    # Capture the username from the session BEFORE the background task runs,
+    # because the Request/session context is not available inside background tasks.
+    scan_username = request.session.get("username")
+    logger.info(f"Batch predict started: {len(resume_data)} files, Job ID: {job_id}, user: {scan_username}")
     
     async def _process_single_inner(filename: str, resume_bytes: bytes,
                                      job_id: str, job_description: str, job_title: str) -> dict:
@@ -655,7 +666,7 @@ async def predict_batch(
         }
 
     # Function to process in background
-    async def process_batch_background(job_id: str, resume_data: list, job_title: str, job_description: str):
+    async def process_batch_background(job_id: str, resume_data: list, job_title: str, job_description: str, username: str = None):
 
         semaphore = asyncio.Semaphore(4) # Limit concurrency
         
@@ -698,11 +709,35 @@ async def predict_batch(
         batch_jobs[job_id]["status"] = "completed"
         logger.info(f"Batch {job_id} complete: {len(sorted_results)} files processed")
 
+        # ── Save each successfully processed resume to the database ──────────
+        # This ensures bulk-scanned resumes appear in the Analytics History,
+        # associated with the HR user who initiated the batch scan.
+        try:
+            from app.models.database import async_session as db_session_maker, ResumeAnalysis
+            async with db_session_maker() as db_sess:
+                for res in sorted_results:
+                    # Skip errored items (they have no classification)
+                    if "error" in res and "classification" not in res:
+                        continue
+                    db_record = ResumeAnalysis(
+                        filename=res.get("filename", "unknown"),
+                        final_match_score=res.get("final_match_score", 0.0),
+                        ai_plausibility_score=0.5,
+                        classification=res.get("classification", "Unknown"),
+                        username=username,
+                        full_results=res
+                    )
+                    db_sess.add(db_record)
+                await db_sess.commit()
+                logger.info(f"Batch {job_id}: saved {len(sorted_results)} results to DB for user '{username}'")
+        except Exception as db_e:
+            logger.error(f"Batch {job_id}: failed to save results to DB: {db_e}")
+
     if background_tasks:
-        background_tasks.add_task(process_batch_background, job_id, resume_data, job_title, job_description)
+        background_tasks.add_task(process_batch_background, job_id, resume_data, job_title, job_description, scan_username)
     else:
         # Fallback if background_tasks is somehow None (e.g. testing)
-        asyncio.create_task(process_batch_background(job_id, resume_data, job_title, job_description))
+        asyncio.create_task(process_batch_background(job_id, resume_data, job_title, job_description, scan_username))
 
     return {"status": "processing", "job_id": job_id, "message": "Batch processing started."}
 
@@ -721,12 +756,22 @@ async def batch_status(job_id: str):
     }
 
 @app.get("/api/history")
-async def get_history(limit: int = 50, offset: int = 0):
+async def get_history(request: Request, limit: int = 50, offset: int = 0):
+    """Fetch analysis history filtered by the currently logged-in user.
+    Each HR user only sees their own scanned resumes."""
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select
+        # Get the logged-in username to filter results
+        current_user = request.session.get("username")
         async with async_session() as session:
-            stmt = select(ResumeAnalysis).order_by(ResumeAnalysis.created_at.desc()).limit(limit).offset(offset)
+            stmt = (
+                select(ResumeAnalysis)
+                .where(ResumeAnalysis.username == current_user)
+                .order_by(ResumeAnalysis.created_at.desc())
+                .limit(limit)
+                .offset(offset)
+            )
             result = await session.execute(stmt)
             records = result.scalars().all()
             
@@ -757,15 +802,20 @@ async def delete_history_record(record_id: int, request: Request):
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select
+        # Only allow deleting records that belong to the current user
+        current_user = request.session.get("username")
         async with async_session() as session:
-            stmt = select(ResumeAnalysis).where(ResumeAnalysis.id == record_id)
+            stmt = select(ResumeAnalysis).where(
+                ResumeAnalysis.id == record_id,
+                ResumeAnalysis.username == current_user
+            )
             result = await session.execute(stmt)
             record = result.scalar_one_or_none()
             if record is None:
-                raise HTTPException(404, "Record not found")
+                raise HTTPException(404, "Record not found or you do not have permission to delete it")
             await session.delete(record)
             await session.commit()
-            logger.info(f"Deleted analysis record id={record_id}")
+            logger.info(f"Deleted analysis record id={record_id} by user '{current_user}'")
             return {"status": "success", "message": f"Record {record_id} deleted"}
     except HTTPException:
         raise
@@ -775,12 +825,19 @@ async def delete_history_record(record_id: int, request: Request):
 
 
 @app.get("/api/export")
-async def export_data(format: str = 'csv'):
+async def export_data(request: Request, format: str = 'csv'):
+    """Export analysis history for the current logged-in user only."""
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select
+        # Filter export to only the current user's scans
+        current_user = request.session.get("username")
         async with async_session() as session:
-            stmt = select(ResumeAnalysis).order_by(ResumeAnalysis.created_at.desc())
+            stmt = (
+                select(ResumeAnalysis)
+                .where(ResumeAnalysis.username == current_user)
+                .order_by(ResumeAnalysis.created_at.desc())
+            )
             result = await session.execute(stmt)
             records = result.scalars().all()
             
