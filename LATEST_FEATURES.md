@@ -1,28 +1,22 @@
-# ClearHire - Latest Feature Updates (v1.1)
+## Production Architecture & Recent Feature Integrations
 
-This document details the latest features, architectural upgrades, and deployment configurations implemented in the ClearHire (SBERT Resume Screener) project. These updates transition the application from a local development prototype to a secure, multi-tenant, cloud-hosted production environment.
+To transition the system from a local prototype to a secure, production-ready application, the following architectural upgrades and features were implemented:
 
-## 1. HR User Isolation (Multi-Tenant Security)
-To support multiple HR recruiters across different companies, the system now enforces strict data isolation based on authenticated sessions.
+### 1. Cloud Infrastructure & Deployment
+*   **Docker Containerization:** Packaged the FastAPI backend, NLP models (SBERT/spaCy), and OCR dependencies (`tesseract-ocr`, `poppler-utils`) into a customized, lightweight Docker container (`python:3.10-slim`).
+*   **Hugging Face Spaces Hosting:** Deployed the Dockerized application to Hugging Face Spaces for scalable, cloud-based inference and public accessibility.
+*   **Custom Domain Routing:** Configured a Cloudflare Redirect Rule to seamlessly route traffic from a custom subdomain (`https://resume.sarshijkarn.com.np`) to the Hugging Face Space endpoint.
 
-*   **Schema Migration:** Upgraded the `ResumeAnalysis` table in PostgreSQL to include an indexed `username` column.
-*   **Session Binding:** Both single-resume scans and bulk batch-screening processes now automatically bind the generated analysis records to the currently logged-in HR user.
-*   **Isolated Analytics:** The Analytics Dashboard and History View dynamically filter database queries (`WHERE username = session.username`), ensuring HR recruiters only see the candidates they have personally scanned.
-*   **Access Control:** Deletion and detailed viewing endpoints explicitly verify ownership before executing database operations, preventing cross-tenant data leaks.
+### 2. Database & Data Persistence
+*   **Supabase PostgreSQL Migration:** Migrated from ephemeral local SQLite to a persistent, remote PostgreSQL instance hosted on Supabase.
+*   **Connection Pooling Optimization:** Integrated Supabase's session-mode connection pooler (`asyncpg` compatible) to handle high-concurrency database connections efficiently.
+*   **Bulk Scan Persistence:** Refactored background worker tasks to asynchronously persist bulk-processed resume screening results directly to the PostgreSQL database, enabling unified historical analysis.
 
-## 2. Bulk Scan Database Persistence
-Previously, batch processing results were ephemeral. Bulk screening has been entirely refactored for persistent storage.
+### 3. Security & Cross-Origin Authentication
+*   **Cross-Origin Cookie Policies:** Reconfigured Starlette's `SessionMiddleware` (`SameSite=None`, `Secure=True`) to support strict browser security policies when hosted inside Hugging Face iframe deployments.
 
-*   **Background Task Context Injection:** The `/api/predict_batch` endpoint now captures the session context before delegating to the background worker.
-*   **Asynchronous Database Logging:** As the background task finishes screening each resume in a zip file, it asynchronously saves the full feature array (Semantic Similarity, Skill Overlap, XGBoost Classification, etc.) to the PostgreSQL database.
-*   **Unified History:** Bulk-processed resumes now seamlessly populate the HR dashboard's history and export features alongside single-scan resumes.
+### 4. HR Data Isolation (Multi-Tenancy)
+*   **Database Schema Evolution:** Upgraded the `ResumeAnalysis` schema with session-bound `username` indexing to transition from single-user to multi-tenant architecture.
+*   **Isolated Scan & History Sessions:** Both single-resume scanning and bulk batch-screening processes dynamically bind the generated data to the currently authenticated HR account. 
+*   **Strict Access Control:** The Analytics Dashboard and History Views rigorously enforce row-level filtering. Deletion and viewing endpoints explicitly verify ownership, ensuring complete data privacy and preventing cross-tenant data leaks between different recruiters.
 
-## 3. Production Cloud Deployment
-The application is now live on the internet, hosted via a combination of Hugging Face Spaces and Supabase.
-
-*   **Docker Containerization:** Created a custom `Dockerfile` based on `python:3.10-slim`. Installed complex system dependencies (`tesseract-ocr`, `poppler-utils`, `libgl1`) required by the NLP and OCR pipelines.
-*   **Supabase PostgreSQL Integration:** Transitioned from a local SQLite/PostgreSQL setup to a persistent cloud database on Supabase.
-*   **AsyncPG Optimization:** Configured the database connection string to utilize Supabase's session-mode pooler (port 5432) for flawless compatibility with `asyncpg` and prepared statements.
-*   **Cross-Origin Session Fixes:** Updated Starlette's `SessionMiddleware` to use `same_site="none"` and `https_only=True`. This resolves strict modern browser blocking policies when the app is served inside a Hugging Face Space iframe.
-*   **Custom Domain Routing:** Configured a Cloudflare Redirect Rule to seamlessly route `https://resume.sarshijkarn.com.np/` to the Hugging Face Space, providing users with a clean, branded entry point.
-*   **Branding:** Injected the custom ClearHire `favicon.ico` across all Jinja2 HTML templates for a polished production feel.
