@@ -24,14 +24,23 @@ if %ERRORLEVEL% neq 0 (
 echo [SUCCESS] PostgreSQL is running!
 
 echo.
-echo Checking AI models...
+echo Checking AI models (spaCy and SBERT)...
 python -c "import spacy; spacy.load('en_core_web_md')" >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [WARNING] spaCy model 'en_core_web_md' is missing.
     echo Downloading it now - this requires internet connection...
     python -m spacy download en_core_web_md
 ) else (
-    echo [SUCCESS] AI Models are ready.
+    echo [SUCCESS] spaCy Model is ready.
+)
+
+python -c "import os; os.environ['HF_HUB_OFFLINE']='0'; os.environ['TRANSFORMERS_OFFLINE']='0'; from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')" >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [WARNING] SBERT model is missing.
+    echo Downloading it now - this requires internet connection...
+    python -c "import os; os.environ['HF_HUB_OFFLINE']='0'; os.environ['TRANSFORMERS_OFFLINE']='0'; from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+) else (
+    echo [SUCCESS] SBERT Model is ready.
 )
 
 echo.
