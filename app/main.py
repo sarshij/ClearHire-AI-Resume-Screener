@@ -118,7 +118,7 @@ app = FastAPI(title="Resume Screener API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=3600)
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET, max_age=3600, same_site="none", https_only=True)
 
 templates = Jinja2Templates(directory=str(BASE / 'app' / 'templates'))
 app.mount("/static", StaticFiles(directory=str(BASE / 'app' / 'static')), name="static")
