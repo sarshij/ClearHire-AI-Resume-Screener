@@ -129,7 +129,7 @@ An SBERT-powered system that:
               ▼                ▼                ▼
      ┌──────────────────────────────────────────────────┐
      │           Validation Feature Extractor            │
-      │  19 features: semantic_similarity, skill_overlap, │
+      │  17 features: semantic_similarity, skill_overlap, │
       │  keyword_stuffing, generic_phrase, skill_density,│
       │  gap_years, overlapping_jobs, promotion_speed,   │
       │  experience_graduation_gap, achievement_count,   │
@@ -160,7 +160,7 @@ An SBERT-powered system that:
 5. `compute_skill_overlap()` extracts skills from both texts using taxonomy, computes Jaccard similarity
 6. `score_experience_relevance()` checks resume for relevant job titles/categories
 7. `compute_all_validation_features()` runs 17 feature extractors including keyword stuffing, generic phrase detection, gap analysis, certification counting, education level encoding, etc.
-8. `predict()` feeds the 19 features into the loaded XGBoost model
+8. `predict()` feeds the 17 features into the loaded XGBoost model
 9. Response includes: classification, confidence, per-class probabilities, scores, skills, validation, preview
 10. Frontend renders the response in styled cards with color-coded badges
 
@@ -181,7 +181,7 @@ An SBERT-powered system that:
 | Suspicious | 1,296 | 32.4% |
 | Potentially Fake | 774 | 19.4% |
 
-**Feature Columns (19 features + target):**
+**Feature Columns (17 features + target):**
 
 ```
 semantic_similarity           — BERT cosine similarity between resume and JD
@@ -226,7 +226,7 @@ The EDA and model training are combined in a single script: `notebooks/01_eda_an
    - Saved as `class_distribution.png`
 
 3. **Feature Statistics:**
-   - `df[feature_cols].describe()` — mean, std, min, max for all 19 features
+   - `df[feature_cols].describe()` — mean, std, min, max for all 17 features
    - Feature engineering: counted certifications per row, counted skills per row, mapped education level to numeric (Bachelor's→1, Master's→2, PhD→3), created binary has_previous_job
    - Imbalance check: Authentic dominates (48.3%), Potentially Fake is minority (19.4%)
    - Stratified splitting used to preserve class ratios
@@ -239,7 +239,7 @@ The EDA and model training are combined in a single script: `notebooks/01_eda_an
    - Grouped by classification to see which features differentiate classes
 
 6. **Correlation Matrix:**
-   - 18×18 heatmap (19 features + risk_level mapped to numeric)
+   - 17×17 heatmap (17 features + risk_level mapped to numeric)
    - Saved as `correlation_matrix.png`
    - Key insight: `final_match_score` and `generic_phrase_score` show strongest correlation with authenticity
 
@@ -256,7 +256,7 @@ The EDA and model training are combined in a single script: `notebooks/01_eda_an
 ```python
 label_map = {'Authentic': 0, 'Suspicious': 1, 'Potentially Fake': 2}
 df['target'] = df['classification'].map(label_map)
-X = df[feature_cols].values   # 19 features
+X = df[feature_cols].values   # 17 features
 y = df['target'].values       # 3 classes
 ```
 
@@ -1347,7 +1347,7 @@ Both values are now dynamically extracted from resume text — no hardcoded defa
 - `count_certifications()` — Certification keyword counting (26 regex patterns)
 - `extract_education_level()` — Education level encoding (PhD=3 down to Diploma=0)
 - `has_previous_job()` — Binary previous employment indicator
-- `compute_all_validation_features()` — Orchestrator that collects all 19 features
+- `compute_all_validation_features()` — Orchestrator that collects all 17 features
 
 ### `app/features/experience_extraction.py` — Dynamic Experience Extraction (107 lines)
 
@@ -1433,7 +1433,7 @@ python3 app/main.py
 
 ### Data Files
 
-- **`data/processed/combined_dataset.csv`** — 4,000 rows × 33 columns (19 features + metadata + target)
+- **`data/processed/combined_dataset.csv`** — 4,000 rows × 33 columns (17 features + metadata + target)
 - **`data/models/xgboost_model.pkl`** — Joblib dump containing model, params, accuracy, F1, feature importance
 - **`data/processed/metrics.json`** — Full training metrics in JSON format
 - **`data/processed/*.png`** — 6 visualization images

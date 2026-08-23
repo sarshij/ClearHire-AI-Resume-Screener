@@ -200,7 +200,7 @@ This formula is exactly as proposed. Semantic meaning dominates (60%), structure
 (See Section 7 for all features)
 
 ### Step 9: XGBoost Classification
-All 19 features → XGBoost → Authentic / Suspicious / Potentially Fake + confidence score
+All 17 features → XGBoost → Authentic / Suspicious / Potentially Fake + confidence score
 
 ### Step 10: SHAP Explainability
 - SHAP (SHapley Additive exPlanations) TreeExplainer runs on every prediction

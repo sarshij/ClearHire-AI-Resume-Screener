@@ -34,7 +34,9 @@ USERS = {
     "applicant": {"password": "apply2026", "role": "user"},
 }
 import secrets
-SESSION_SECRET = secrets.token_hex(32)
+# Read SESSION_SECRET from environment (set as HF Secret for persistence across restarts).
+# Falls back to a random key for local development where the env var is not set.
+SESSION_SECRET = os.environ.get("SESSION_SECRET") or secrets.token_hex(32)
 
 from app.logger import setup_logger
 from app.utils.parser import parse_resume, is_resume_format  # BUG 9: import at top, not inside hot path
