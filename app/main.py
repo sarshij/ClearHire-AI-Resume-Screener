@@ -375,6 +375,30 @@ async def health():
 async def favicon():
     return FileResponse(BASE / "app" / "static" / "favicon.ico")
 
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    """
+    Serve the robots.txt file with the correct plain-text MIME type.
+    Without this route, FastAPI would return an HTML page (login redirect),
+    which confuses crawlers and Google Search Console.
+    """
+    robots_path = BASE / "robots.txt"
+    if not robots_path.exists():
+        raise HTTPException(404, "robots.txt not found")
+    return FileResponse(robots_path, media_type="text/plain")
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    """
+    Serve the sitemap.xml file with the correct XML MIME type.
+    Without this route, FastAPI returns an HTML page instead, causing
+    Google Search Console to report 'Sitemap is HTML'.
+    """
+    sitemap_path = BASE / "sitemap.xml"
+    if not sitemap_path.exists():
+        raise HTTPException(404, "sitemap.xml not found")
+    return FileResponse(sitemap_path, media_type="application/xml")
+
 @app.post("/api/predict")
 @limiter.limit("25/minute")
 async def predict_single(
