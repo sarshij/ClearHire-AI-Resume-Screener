@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ClearHire — Submit Resume</title>
-  <meta name="description" content="Submit your resume to ClearHire for screening consideration.">
+  <title>ClearHire — Check Your Fit</title>
+  <meta name="description" content="Analyze how well your resume matches a job description using ClearHire's SBERT-powered pipeline. Results are private and never stored.">
   <link rel="stylesheet" href="/static/style.css">
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  <!-- Chart.js for skill gap donut chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -18,35 +20,41 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
           <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
           <polyline points="10 9 9 9 8 9"/>
         </svg>
       </div>
       <span class="logo-text">ClearHire</span>
     </a>
     <nav class="nav-links">
+      <!-- Applicant only sees Analyze Resume and Logout -->
       <a href="/user/upload" class="nav-link active">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        Upload Resume
+        Analyze Resume
       </a>
       <a href="/logout" class="nav-link" style="color:var(--gray-400);" title="Logout">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
         Logout
       </a>
     </nav>
-    <!-- Role badge -->
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-      <span style="display:inline-flex;align-items:center;gap:0.375rem;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:0.25rem 0.75rem;border-radius:99px;background:#F0FDF4;color:#15803d;border:1px solid #86efac;">
-        🟩 Applicant
-      </span>
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <!-- Applicant role badge (green, distinct from HR blue) -->
+      <span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:0.2rem 0.6rem;border-radius:99px;background:#F0FDF4;color:#15803d;border:1px solid #86efac;">&#129001; Applicant</span>
       <button class="nav-mobile-btn" id="mobileBtn" aria-label="Open menu">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -58,34 +66,49 @@
   <div class="mobile-menu-header">
     <a href="/user/upload" class="logo">
       <div class="logo-mark" style="width:1.875rem;height:1.875rem;border-radius:8px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
       </div>
       <span class="logo-text" style="font-size:1.05rem;">ClearHire</span>
     </a>
     <button class="mobile-menu-close" id="mobileClose">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
     </button>
   </div>
   <nav class="mobile-nav">
     <a href="/user/upload" class="mobile-nav-link active">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Upload Resume
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Analyze Resume
     </a>
     <a href="/logout" class="mobile-nav-link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
       Logout
     </a>
   </nav>
   <div class="mobile-menu-footer">
-    <p style="font-size:0.75rem; color:var(--gray-400);">© 2026 ClearHire · Academic Project</p>
+    <p style="font-size:0.75rem; color:var(--gray-400);">&#169; 2026 ClearHire &#183; Academic Project</p>
   </div>
 </div>
 
 <!-- ── Main ──────────────────────────────────────────────── -->
 <main>
 
-  <!-- Hero -->
+  <!-- Hero — applicant-focused messaging -->
   <section class="hero-section">
+    <!-- Animated SVG grid background -->
     <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0.35;" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -95,130 +118,324 @@
       <rect width="100%" height="100%" fill="url(#grid)"/>
     </svg>
 
-    <div style="position:relative;z-index:1;max-width:600px;margin:0 auto;">
+    <div style="position:relative;z-index:1;max-width:700px;margin:0 auto;">
+      <!-- Eyebrow -->
       <div class="hero-eyebrow animate-fadeInUp">
-        <span class="live-dot" style="background:var(--success);"></span>
-        Resume Submission Portal
+        <span class="live-dot"></span>
+        Career Fit Analysis &middot; SBERT Matching &middot; Private &amp; Not Stored
       </div>
 
+      <!-- Title — applicant framing -->
       <h1 class="hero-title animate-fadeInUp delay-100">
-        Submit Your <span class="grad">Resume</span><br>for Consideration
+        See How Well Your <span class="grad">Resume Fits</span><br>Any Job Role
       </h1>
 
+      <!-- Subtitle -->
       <p class="hero-subtitle animate-fadeInUp delay-200">
-        Upload your resume below. Your application will be processed by our SBERT-powered screening system and reviewed by the HR team.
+        Upload your resume and paste a job description. Our SBERT pipeline instantly scores your
+        semantic match, skill alignment, and experience relevance — so you know exactly where you
+        stand before you apply. <strong>Results are never saved.</strong>
       </p>
+
+      <!-- Applicant-relevant stats -->
+      <div class="hero-stats animate-fadeInUp delay-300">
+        <div class="hero-stat">
+          <span class="hero-stat-dot" style="background:var(--success);"></span>
+          Instant Match Score
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-dot" style="background:var(--primary);"></span>
+          Skill Gap Breakdown
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-dot" style="background:var(--accent-purple);"></span>
+          Resume Authenticity Check
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-dot" style="background:var(--accent-amber);"></span>
+          100% Private — No DB Storage
+        </div>
+      </div>
+    </div>
+
     </div>
   </section>
 
-  <!-- Upload Form -->
-  <div class="container max-w-screen-lg" style="padding-top:2rem;max-width:680px;">
-
-    <!-- Upload Card -->
-    <div class="card animate-fadeInUp delay-300" id="uploadCard">
+  <!-- Upload Form — posts to /user/analyze (no DB write) -->
+  <div class="container max-w-screen-lg" style="padding-top:2rem;">
+    <div class="card animate-fadeInUp delay-300">
       <div class="card-header">
         <h2 class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2" stroke-linecap="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          Upload Your Resume
+          Check Your Resume Fit
         </h2>
-        <p class="card-description">Supported formats: PDF, DOCX. Maximum file size: 5 MB.</p>
+        <p class="card-description">Upload your resume and the job description to instantly see how well you match the role. Your data is <strong>never saved</strong> to any database.</p>
       </div>
 
       <div class="card-body">
-        <form id="userUploadForm" autocomplete="off">
+        <form id="uploadForm" autocomplete="off">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;" class="form-row">
 
-          <!-- Resume Drop Zone -->
-          <div class="form-group">
-            <label class="form-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Resume File <span style="color:var(--error);margin-left:2px;">*</span>
-            </label>
-            <div class="file-drop-zone" id="resumeDropZone">
-              <input type="file" name="resume" id="resumeInput" accept=".pdf,.docx" required>
-              <div class="file-drop-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            <!-- Resume Upload -->
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
                 </svg>
-              </div>
-              <div class="file-drop-title">Drop your resume here or <span style="color:var(--success);font-weight:600;">click to browse</span></div>
-              <div class="file-drop-sub">PDF, DOCX · Max 5 MB</div>
-              <div id="resumeFileBadge" style="display:none;" class="file-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span id="resumeFileName"></span>
+                Your Resume <span style="color:var(--error);margin-left:2px;">*</span>
+              </label>
+              <div class="file-drop-zone" id="resumeDropZone">
+                <input type="file" name="resume" id="resumeInput" accept=".pdf,.docx,.txt" required>
+                <div class="file-drop-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <div class="file-drop-title">Drop your resume here or <span style="color:var(--success);font-weight:600;">click to browse</span></div>
+                <div class="file-drop-sub">PDF, DOCX &middot; Max 5 MB</div>
+                <div id="resumeFileBadge" style="display:none;" class="file-badge">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span id="resumeFileName"></span>
+                </div>
               </div>
             </div>
+
+            <!-- Job Title -->
+            <div class="form-group">
+              <label class="form-label" for="jobTitleInput">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+                Target Job Title <span style="color:var(--gray-400);font-weight:400;">(optional)</span>
+              </label>
+              <input type="text" name="job_title" id="jobTitleInput" class="form-input" placeholder="e.g. Junior Data Analyst">
+            </div>
+
+            <!-- Tip -->
+            <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:1.25rem;">
+              <div style="font-size:0.8rem;color:var(--gray-400);line-height:1.6;">
+                <strong style="color:var(--gray-600);">Tip:</strong> Adding the job title improves experience relevance accuracy.
+              </div>
+            </div>
+
+            <!-- Job Description -->
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Job Description <span style="color:var(--error);margin-left:2px;">*</span>
+              </label>
+
+              <div class="jd-toggle">
+                <button type="button" class="jd-toggle-btn active" id="jdPasteBtn" onclick="switchJdMode('paste')">&#9999;&#65039; Paste Text</button>
+                <button type="button" class="jd-toggle-btn" id="jdFileBtn" onclick="switchJdMode('file')">&#128206; Upload File</button>
+              </div>
+
+              <div id="jdPasteArea">
+                <textarea name="job_description" id="jdTextArea" class="form-textarea"
+                  placeholder="Paste the full job description here — required skills, qualifications, responsibilities..."
+                  required style="min-height:11rem;"></textarea>
+              </div>
+
+              <div id="jdFileArea" style="display:none;">
+                <div class="file-drop-zone" id="jdDropZone">
+                  <input type="file" name="job_description_file" id="jdFileInput" accept=".pdf,.docx,.txt">
+                  <div class="file-drop-icon" style="width:2.5rem;height:2.5rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                  </div>
+                  <div class="file-drop-title">Upload JD file</div>
+                  <div class="file-drop-sub">PDF, DOCX</div>
+                  <div id="jdFileBadge" style="display:none;" class="file-badge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span id="jdFileName"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <!-- Submit -->
-          <button type="submit" class="btn w-full btn-lg" id="submitBtn"
-            style="background:linear-gradient(135deg,#10B981 0%,#0D9488 100%);color:white;box-shadow:0 4px 14px rgba(16,185,129,0.3);margin-top:0.25rem;">
+          <!-- Submit button — green gradient for applicant branding -->
+          <button type="submit" class="btn btn-primary w-full btn-lg" id="submitBtn"
+            style="margin-top:0.5rem;background:linear-gradient(135deg,#059669,#0284c7);">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-              <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="16"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
             </svg>
-            Submit Resume
+            Analyze My Resume
           </button>
         </form>
       </div>
     </div>
 
-    <!-- Progress -->
-    <div id="progressCard" class="card hidden animate-fadeInUp" style="margin-top:1.5rem;">
-      <div class="card-body loading-panel" style="padding:2.5rem;">
-        <div class="loading-spinner" style="border-top-color:#10B981;"></div>
+    <!-- Results Section (hidden until analysis completes) -->
+    <div id="resultsSection" class="hidden" style="margin-top:1.5rem;">
+
+      <!-- Loading panel -->
+      <div id="loadingPanel" class="card loading-panel">
+        <div class="loading-spinner"></div>
         <div>
-          <div class="loading-label" id="progressLabel">Submitting your resume...</div>
-          <div class="loading-sub">Please wait while we process your file</div>
+          <div class="loading-label" id="loadingLabel">Analyzing your resume...</div>
+          <div class="loading-sub">Running NLP pipeline and classification</div>
         </div>
       </div>
-    </div>
 
-    <!-- Success Result -->
-    <div id="successCard" class="card hidden animate-fadeInUp" style="margin-top:1.5rem;">
-      <div class="card-body" style="padding:2.5rem;text-align:center;">
-        <div style="width:4rem;height:4rem;background:linear-gradient(135deg,#dcfce7,#bbf7d0);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2.5" stroke-linecap="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
-        <h2 style="font-size:1.25rem;font-weight:800;color:var(--gray-900);margin-bottom:0.5rem;">Resume Submitted Successfully</h2>
-        <p style="font-size:0.9rem;color:var(--gray-500);margin-bottom:1.75rem;line-height:1.7;">
-          Your resume has been received and queued for review. The HR team will be in touch if your profile matches the requirements.
-        </p>
-        <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
-          <button onclick="resetForm()" class="btn btn-outline" style="border-color:var(--success);color:var(--success);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-            </svg>
-            Submit Another
-          </button>
-        </div>
-      </div>
-    </div>
+      <!-- Result card (shown after loading) -->
+      <div id="resultCard" class="hidden">
 
-    <!-- Error Result -->
-    <div id="errorCard" class="card hidden animate-fadeInUp" style="margin-top:1.5rem;">
-      <div class="card-body" style="padding:2rem;">
-        <div class="alert alert-error" style="margin-bottom:0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;">
-            <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
-          </svg>
-          <div>
-            <strong>Submission Failed:</strong>
-            <span id="errorMsg"> An error occurred. Please try again.</span>
+        <!-- Classification + Confidence -->
+        <div class="card mb-4 animate-fadeInUp" id="clsCard">
+          <div class="card-body" style="padding:1.75rem;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.5rem;">Resume Verdict</div>
+                <div id="clsBadge" class="cls-badge" style="font-size:0.9rem;padding:0.5rem 1.25rem;"></div>
+                <div style="margin-top:0.75rem;font-size:0.8125rem;color:var(--gray-500);" id="clsFilename"></div>
+                <div id="llmVerificationBadge" style="display:none; margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px; font-size: 0.85rem; align-items: flex-start; gap: 0.5rem;"></div>
+              </div>
+              <!-- Confidence ring -->
+              <div style="text-align:center;">
+                <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:0.5rem;">Confidence</div>
+                <div class="confidence-wrap" style="flex-direction:column;gap:0.25rem;">
+                  <div class="confidence-ring">
+                    <svg viewBox="0 0 72 72" width="72" height="72">
+                      <circle class="ring-bg" cx="36" cy="36" r="30"/>
+                      <circle class="ring-fill" id="confRing" cx="36" cy="36" r="30"
+                        stroke-dasharray="188.5" stroke-dashoffset="188.5" stroke="var(--primary)"/>
+                    </svg>
+                    <div class="ring-label" id="confLabel">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Probability bars -->
+            <div style="margin-top:1.5rem;">
+              <div class="section-label">Classification Probabilities</div>
+              <div class="prob-bars" id="probBars">
+                <div class="prob-row">
+                  <span class="prob-label" style="color:#15803d;">&#10003; Authentic</span>
+                  <div class="prob-bar-track"><div class="prob-bar-fill" id="pb-authentic" style="width:0%;background:#10B981;"></div></div>
+                  <span class="prob-value text-green-600" id="pv-authentic">0%</span>
+                </div>
+                <div class="prob-row">
+                  <span class="prob-label" style="color:#a16207;">&#9888; Suspicious</span>
+                  <div class="prob-bar-track"><div class="prob-bar-fill" id="pb-suspicious" style="width:0%;background:#F59E0B;"></div></div>
+                  <span class="prob-value text-yellow-600" id="pv-suspicious">0%</span>
+                </div>
+                <div class="prob-row">
+                  <span class="prob-label" style="color:#b91c1c;">&#10007; Potentially Fake</span>
+                  <div class="prob-bar-track"><div class="prob-bar-fill" id="pb-fake" style="width:0%;background:#EF4444;"></div></div>
+                  <span class="prob-value text-red-600" id="pv-fake">0%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <button onclick="resetForm()" class="btn btn-ghost" style="margin-top:1rem;">Try Again</button>
-      </div>
-    </div>
 
-  </div>
+        <!-- Match Scores -->
+        <div class="card mb-4 animate-fadeInUp delay-100">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Your Fit Scores
+            </h2>
+          </div>
+          <div class="card-body">
+            <div class="score-grid" id="scoreGrid"></div>
+          </div>
+        </div>
+
+        <!-- Skills Analysis with Donut Chart -->
+        <div class="card mb-4 animate-fadeInUp delay-200">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.2" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+              Skills Analysis
+            </h2>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:2rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+              <div style="position:relative;width:140px;height:140px;flex-shrink:0;">
+                <canvas id="skillDonutChart" width="140" height="140"></canvas>
+                <div id="skillDonutCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+                  <div style="font-size:1.4rem;font-weight:800;color:var(--gray-800);" id="skillMatchPct">0%</div>
+                  <div style="font-size:0.62rem;color:var(--gray-400);font-weight:600;text-transform:uppercase;">Match</div>
+                </div>
+              </div>
+              <div style="flex:1;min-width:160px;">
+                <div style="display:flex;flex-direction:column;gap:0.6rem;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Matched skills</span><span id="skillMatchCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#10B981;">0</span></div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Missing skills</span><span id="skillMissingCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#EF4444;">0</span></div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;"><span style="width:10px;height:10px;border-radius:50%;background:#3B82F6;display:inline-block;"></span><span style="font-size:0.8rem;color:var(--gray-600);">Extra skills</span><span id="skillExtraCount" style="margin-left:auto;font-weight:700;font-family:var(--font-mono);color:#3B82F6;">0</span></div>
+                </div>
+              </div>
+            </div>
+            <div id="skillsContent"></div>
+          </div>
+        </div>
+
+        <!-- Decision Explainability (SHAP) -->
+        <div class="card mb-4 animate-fadeInUp delay-250" id="shapCard" style="display:none;">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Why This Verdict?
+              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">Decision Explainability</span>
+            </h2>
+            <p class="card-description">Top features that most influenced your classification score.</p>
+          </div>
+          <div class="card-body" id="shapContent"></div>
+        </div>
+
+        <!-- Validation Signals -->
+        <div class="card mb-4 animate-fadeInUp delay-300">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Validation Signals
+              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">17 features</span>
+            </h2>
+            <p class="card-description">17 authenticity features extracted from your resume for the XGBoost classifier.</p>
+          </div>
+          <div class="card-body">
+            <div class="val-grid" id="valGrid"></div>
+          </div>
+        </div>
+
+        <!-- Resume Text Preview -->
+        <div class="card animate-fadeInUp delay-400">
+          <div class="card-header">
+            <h2 class="card-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              What We Extracted
+              <span style="margin-left:auto;font-size:0.7rem;font-weight:500;color:var(--gray-400);">Summary Preview</span>
+            </h2>
+          </div>
+          <div class="card-body">
+            <div class="resume-preview" id="resumePreview"></div>
+          </div>
+        </div>
+
+      </div><!-- /resultCard -->
+    </div><!-- /resultsSection -->
+
+  </div><!-- /container -->
 </main>
 
 <script>
@@ -235,6 +452,32 @@ mobileBtn.addEventListener('click', openMenu);
 mobileClose.addEventListener('click', closeMenu);
 mobileOverlay.addEventListener('click', closeMenu);
 
+/* ── JD Mode Toggle ─────────────────────────────────────── */
+function switchJdMode(mode) {
+  const pasteArea = document.getElementById('jdPasteArea');
+  const fileArea  = document.getElementById('jdFileArea');
+  const pasteBtn  = document.getElementById('jdPasteBtn');
+  const fileBtn   = document.getElementById('jdFileBtn');
+  const textarea  = document.getElementById('jdTextArea');
+  const fileInput = document.getElementById('jdFileInput');
+
+  if (mode === 'paste') {
+    pasteArea.style.display = '';
+    fileArea.style.display  = 'none';
+    pasteBtn.classList.add('active');
+    fileBtn.classList.remove('active');
+    textarea.required  = true;
+    fileInput.required = false;
+  } else {
+    pasteArea.style.display = 'none';
+    fileArea.style.display  = '';
+    fileBtn.classList.add('active');
+    pasteBtn.classList.remove('active');
+    textarea.required  = false;
+    fileInput.required = false;
+  }
+}
+
 /* ── File Input Feedback ────────────────────────────────── */
 document.getElementById('resumeInput').addEventListener('change', function() {
   const badge = document.getElementById('resumeFileBadge');
@@ -247,63 +490,256 @@ document.getElementById('resumeInput').addEventListener('change', function() {
   }
 });
 
-/* ── Form Submission ────────────────────────────────────── */
-document.getElementById('userUploadForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-
-  const btn      = document.getElementById('submitBtn');
-  const progress = document.getElementById('progressCard');
-  const success  = document.getElementById('successCard');
-  const error    = document.getElementById('errorCard');
-  const label    = document.getElementById('progressLabel');
-
-  btn.disabled = true;
-  progress.classList.remove('hidden');
-  success.classList.add('hidden');
-  error.classList.add('hidden');
-
-  const steps = ['Uploading resume…', 'Extracting text…', 'Processing file…', 'Finalizing submission…'];
-  let si = 0;
-  const stepTimer = setInterval(() => { label.textContent = steps[Math.min(si++, steps.length-1)]; }, 1100);
-
-  try {
-    const formData = new FormData();
-    formData.append('resume', document.getElementById('resumeInput').files[0]);
-
-    const resp = await fetch('/user/submit', { method: 'POST', body: formData });
-    const data = await resp.json();
-    clearInterval(stepTimer);
-    progress.classList.add('hidden');
-
-    if (data.status === 'success') {
-      success.classList.remove('hidden');
-      success.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      document.getElementById('errorMsg').textContent = ' ' + (data.detail || 'Submission failed. Please try again.');
-      error.classList.remove('hidden');
-      error.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      btn.disabled = false;
-    }
-  } catch(err) {
-    clearInterval(stepTimer);
-    progress.classList.add('hidden');
-    document.getElementById('errorMsg').textContent = ' ' + err.message;
-    error.classList.remove('hidden');
-    error.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    btn.disabled = false;
+document.getElementById('jdFileInput').addEventListener('change', function() {
+  const badge = document.getElementById('jdFileBadge');
+  const name  = document.getElementById('jdFileName');
+  if (this.files[0]) {
+    name.textContent = this.files[0].name;
+    badge.style.display = 'inline-flex';
+    document.getElementById('jdDropZone').style.borderColor = 'var(--success)';
+    document.getElementById('jdDropZone').style.background  = '#f0fdf4';
   }
 });
 
-/* ── Reset ──────────────────────────────────────────────── */
-function resetForm() {
-  document.getElementById('userUploadForm').reset();
-  document.getElementById('resumeFileBadge').style.display = 'none';
-  document.getElementById('resumeDropZone').style.borderColor = '';
-  document.getElementById('resumeDropZone').style.background = '';
-  document.getElementById('successCard').classList.add('hidden');
-  document.getElementById('errorCard').classList.add('hidden');
-  document.getElementById('submitBtn').disabled = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+/* ── Form Submission — posts to /user/analyze (no DB save) ── */
+document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const btn        = document.getElementById('submitBtn');
+  const results    = document.getElementById('resultsSection');
+  const loading    = document.getElementById('loadingPanel');
+  const resultCard = document.getElementById('resultCard');
+  const label      = document.getElementById('loadingLabel');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.8s linear infinite;"></div> Analyzing...';
+  results.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  resultCard.classList.add('hidden');
+
+  /* Animated step labels so the user knows we are working */
+  const steps = [
+    'Extracting text from your resume...',
+    'Computing SBERT embeddings...',
+    'Scoring skill overlap against JD...',
+    'Running XGBoost authenticity check...',
+    'Compiling your fit report...'
+  ];
+  let si = 0;
+  const stepTimer = setInterval(() => { label.textContent = steps[Math.min(si++, steps.length - 1)]; }, 900);
+
+  try {
+    /* Send to the applicant-only endpoint — results are NOT saved to DB */
+    const resp = await fetch('/user/analyze', { method: 'POST', body: new FormData(this) });
+    const data = await resp.json();
+    clearInterval(stepTimer);
+
+    if (data.status !== 'success') throw new Error(data.detail || 'Analysis failed');
+
+    loading.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+    renderResults(data);
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    clearInterval(stepTimer);
+    loading.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+    resultCard.innerHTML = `<div class="alert alert-error animate-fadeInUp">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      <div><strong>Error:</strong> ${err.message}</div>
+    </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Analyze My Resume';
+  }
+});
+
+/* ── Render Results ─────────────────────────────────────── */
+function renderResults(data) {
+  const cls        = data.classification || {};
+  const scores     = data.scores         || {};
+  const skills     = data.skills         || {};
+  const validation = data.validation     || {};
+
+  /* Classification badge */
+  const label  = cls.classification || 'Unknown';
+  const conf   = cls.confidence || 0;
+  const badge  = document.getElementById('clsBadge');
+  const clsMap = {
+    'Authentic':        { cls:'cls-authentic',  icon:'&#10003;', color:'#15803d' },
+    'Suspicious':       { cls:'cls-suspicious', icon:'&#9888;',  color:'#a16207' },
+    'Potentially Fake': { cls:'cls-fake',       icon:'&#10007;', color:'#b91c1c' },
+    'Not a Resume':     { cls:'cls-invalid',    icon:'&#128683;',color:'#374151' }
+  };
+  const info = clsMap[label] || { cls:'', icon:'?', color:'var(--gray-600)' };
+  badge.className = `cls-badge ${info.cls}`;
+  badge.innerHTML = `${info.icon} ${label}`;
+  document.getElementById('clsFilename').textContent = `File: ${data.filename || ''}`;
+
+  /* LLM Verification badge */
+  const llmBadge = document.getElementById('llmVerificationBadge');
+  if (cls.llm_verification) {
+    llmBadge.style.display = 'flex';
+    if (cls.llm_verification.consensus === 'Agree') {
+      llmBadge.style.cssText += ';background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;';
+      llmBadge.innerHTML = `<span style="font-size:1.1rem;">&#128737;&#65039;</span> <div>${cls.llm_verification.reasoning}</div>`;
+    } else {
+      llmBadge.style.cssText += ';background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;';
+      llmBadge.innerHTML = `<span style="font-size:1.1rem;">&#9888;&#65039;</span> <div>${cls.llm_verification.reasoning}</div>`;
+    }
+  } else {
+    llmBadge.style.display = 'none';
+  }
+
+  /* Confidence ring */
+  const pct          = Math.round(conf * 100);
+  const circumference = 2 * Math.PI * 30;
+  const offset       = circumference * (1 - conf);
+  const ring         = document.getElementById('confRing');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke           = info.color;
+  document.getElementById('confLabel').textContent = pct + '%';
+  document.getElementById('confLabel').style.color = info.color;
+
+  /* Probability bars */
+  setTimeout(() => {
+    function setBar(id, valId, val, color) {
+      const pctVal = Math.round(val * 100);
+      document.getElementById(id).style.width      = pctVal + '%';
+      document.getElementById(id).style.background = color;
+      document.getElementById(valId).textContent   = pctVal + '%';
+    }
+    setBar('pb-authentic',  'pv-authentic',  cls.prob_Authentic          || 0, '#10B981');
+    setBar('pb-suspicious', 'pv-suspicious', cls.prob_Suspicious         || 0, '#F59E0B');
+    setBar('pb-fake',       'pv-fake',       cls['prob_Potentially Fake']|| 0, '#EF4444');
+  }, 200);
+
+  /* Score grid — applicant-friendly labels */
+  const scoreLabels = {
+    semantic_similarity:         { label:'Semantic Match',      color:'var(--primary)'        },
+    skill_overlap_score:         { label:'Skill Overlap',       color:'var(--success)'        },
+    experience_relevance_score:  { label:'Experience Fit',      color:'var(--accent-teal)'    },
+    final_match_score:           { label:'Overall Fit Score',   color:'var(--accent-purple)'  }
+  };
+  const scoreGrid = document.getElementById('scoreGrid');
+  scoreGrid.innerHTML = Object.entries(scoreLabels).map(([key, meta]) => {
+    const val   = scores[key] || 0;
+    const pct   = Math.round(val * 100);
+    const color = pct >= 60 ? '#10B981' : pct >= 35 ? '#F59E0B' : '#EF4444';
+    return `<div class="score-card">
+      <div class="score-label">${meta.label}</div>
+      <div class="score-value" style="color:${color}">${val.toFixed(3)}</div>
+      <div style="margin-top:0.5rem;font-size:0.72rem;color:${color};font-weight:600;">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  /* Skills donut chart */
+  const matched = skills.matched || [];
+  const missing = skills.missing || [];
+  const extra   = skills.extra   || [];
+  const matchPct = (matched.length + missing.length) > 0
+    ? Math.round((matched.length / (matched.length + missing.length)) * 100) : 0;
+  document.getElementById('skillMatchPct').textContent    = matchPct + '%';
+  document.getElementById('skillMatchCount').textContent  = matched.length;
+  document.getElementById('skillMissingCount').textContent= missing.length;
+  document.getElementById('skillExtraCount').textContent  = extra.length;
+
+  if (window._skillChart) { window._skillChart.destroy(); }
+  const ctx = document.getElementById('skillDonutChart').getContext('2d');
+  window._skillChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Matched', 'Missing', 'Extra'],
+      datasets: [{ data: [matched.length || 0.001, missing.length || 0.001, extra.length || 0.001],
+        backgroundColor: ['#10B981', '#EF4444', '#3B82F6'],
+        borderWidth: 2, borderColor: '#fff', hoverOffset: 4
+      }]
+    },
+    options: { cutout: '72%', plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` ${ctx.label}: ${ctx.raw === 0.001 ? 0 : ctx.raw}`
+    }}}, animation: { animateRotate: true, duration: 800 }}
+  });
+
+  const skillsContent = document.getElementById('skillsContent');
+  skillsContent.innerHTML = [
+    matched.length ? `<div class="mb-4"><div class="section-label">&#10003; Matched (${matched.length})</div><div class="skill-chips">${matched.map(s=>`<span class="skill-chip chip-match">${s}</span>`).join('')}</div></div>` : '',
+    missing.length ? `<div class="mb-4"><div class="section-label">&#9888; Missing from Resume (${missing.length})</div><div class="skill-chips">${missing.map(s=>`<span class="skill-chip chip-missing">${s}</span>`).join('')}</div></div>` : '',
+    extra.length   ? `<div><div class="section-label">+ Additional Skills (${extra.length})</div><div class="skill-chips">${extra.map(s=>`<span class="skill-chip chip-extra">${s}</span>`).join('')}</div></div>` : '',
+    (!matched.length && !missing.length && !extra.length) ? `<p class="text-muted text-sm">No skill data available.</p>` : ''
+  ].join('');
+
+  /* SHAP Explainability */
+  const topFeatures = cls.top_features || [];
+  const shapCard    = document.getElementById('shapCard');
+  const shapContent = document.getElementById('shapContent');
+  const friendlyNames = {
+    semantic_similarity:'Semantic Match', skill_overlap_score:'Skill Overlap',
+    experience_relevance_score:'Experience Fit', final_match_score:'Overall Fit',
+    overlapping_jobs:'Overlapping Jobs', promotion_speed:'Promotion Speed',
+    experience_graduation_gap:'Exp/Graduation Gap', skill_density:'Skill Density',
+    achievement_count:'Achievement Count', generic_phrase_score:'Generic Phrases',
+    gap_years:'Employment Gap Years', keyword_stuffing_score:'Keyword Stuffing',
+    years_experience:'Years of Experience', num_certifications:'Certifications',
+    num_skills:'Total Skills', education_level_encoded:'Education Level',
+    skill_experience_alignment:'Skill-Experience Alignment'
+  };
+  if (topFeatures.length) {
+    shapCard.style.display = '';
+    const maxContrib = Math.max(...topFeatures.map(f => Math.abs(f.contribution)), 0.0001);
+    shapContent.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.9rem;">
+        ${topFeatures.map((f, i) => {
+          const name   = friendlyNames[f.feature] || f.feature.replace(/_/g,' ');
+          const isPos  = f.contribution >= 0;
+          const color  = isPos ? '#10B981' : '#EF4444';
+          const dir    = isPos ? '&#8593; Toward verdict' : '&#8595; Against verdict';
+          const barPct = Math.min(100, Math.abs(f.contribution) / maxContrib * 100).toFixed(1);
+          return `<div style="background:var(--gray-50);border:1px solid var(--border);border-radius:8px;padding:0.85rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+              <span style="font-weight:600;font-size:0.82rem;color:var(--gray-800);">${i+1}. ${name}</span>
+              <span style="font-size:0.72rem;font-weight:700;color:${color};background:${isPos?'#dcfce7':'#fee2e2'};padding:0.15rem 0.5rem;border-radius:99px;">${dir}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <div style="flex:1;height:7px;background:var(--gray-100);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:${barPct}%;background:${color};border-radius:99px;transition:width 0.8s ease;"></div>
+              </div>
+              <span style="font-size:0.72rem;font-family:var(--font-mono);color:var(--gray-500);min-width:60px;text-align:right;">val: ${f.value.toFixed(3)}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <p style="margin-top:0.75rem;font-size:0.72rem;color:var(--gray-400);">SHAP-based feature attribution — positive contribution pushes toward the assigned class; negative pushes away.</p>`;
+  } else {
+    shapCard.style.display = 'none';
+  }
+
+  /* Validation signals grid */
+  const valGrid = document.getElementById('valGrid');
+  const valFriendly = {
+    semantic_similarity:'Semantic Sim', skill_overlap_score:'Skill Overlap',
+    experience_relevance_score:'Exp Relevance', final_match_score:'Match Score',
+    overlapping_jobs:'Overlapping Jobs', promotion_speed:'Promotion Speed',
+    experience_graduation_gap:'Exp/Grad Gap', skill_density:'Skill Density',
+    achievement_count:'Achievements', generic_phrase_score:'Generic Phrases',
+    gap_years:'Gap Years', keyword_stuffing_score:'Keyword Stuffing',
+    years_experience:'Years Exp', num_certifications:'Certifications',
+    num_skills:'Skill Count', education_level_encoded:'Education Level',
+    skill_experience_alignment:'Skill Alignment'
+  };
+  valGrid.innerHTML = Object.entries(validation).map(([key, val]) => {
+    const friendly = valFriendly[key] || key.replace(/_/g,' ');
+    const display  = typeof val === 'number'
+      ? (Number.isInteger(val) ? val : val.toFixed(3))
+      : String(val);
+    return `<div class="val-item">
+      <div class="val-label">${friendly}</div>
+      <div class="val-value">${display}</div>
+    </div>`;
+  }).join('');
+
+  /* Resume summary preview */
+  document.getElementById('resumePreview').textContent = data.resume_preview || '(No preview available)';
 }
 </script>
 </body>

@@ -296,46 +296,131 @@ async def user_upload_page(request: Request):
         return RedirectResponse(url="/", status_code=303)
     return templates.TemplateResponse(request=request, name="user_upload.html", context={"request": request})
 
-@app.post("/user/submit")
+@app.post("/user/analyze")
 @limiter.limit("10/minute")
-async def user_submit_resume(
+async def user_analyze_resume(
     request: Request,
-    resume: UploadFile = File(...)
+    resume: UploadFile = File(...),
+    job_title: str = Form(""),
+    job_description: str = Form(""),
+    job_description_file: UploadFile = File(None)
 ):
-    """End-user resume submission endpoint. Validates and saves the file only — no analytics returned."""
+    """
+    Applicant self-screening endpoint.
+    Runs the FULL analysis pipeline (same as /api/predict) but does NOT
+    persist any result to the database — results are local/in-browser only.
+    """
     redirect = require_user(request)
     if redirect:
         raise HTTPException(401, "Not authenticated")
+
     try:
+        # ── Parse JD from uploaded file if provided ───────────────────────
+        if job_description_file and job_description_file.filename:
+            jd_bytes = await job_description_file.read()
+            if jd_bytes:
+                validate_upload(jd_bytes, job_description_file.filename)
+                job_description = parse_resume(jd_bytes, job_description_file.filename)
+
+        # ── Input sanitisation ────────────────────────────────────────────
+        job_title       = job_title.strip()[:200]
+        job_description = job_description.strip()[:3000]
+
+        if not job_description:
+            raise HTTPException(400, "Job description must be provided via text or file upload")
+
+        # ── Parse and validate resume ─────────────────────────────────────
         resume_bytes = await resume.read()
         validate_upload(resume_bytes, resume.filename or "resume.pdf")
         resume_text = parse_resume(resume_bytes, resume.filename or "resume.pdf")
         if not resume_text or len(resume_text.strip()) < 20:
-            raise HTTPException(400, "Could not extract readable text from the resume")
-        logger.info(f"[USER SUBMIT] {request.session.get('username')} uploaded {resume.filename}")
-        # Optionally save to DB as a pending submission (no scoring fields)
-        try:
-            from app.models.database import async_session, ResumeAnalysis
-            async with async_session() as session:
-                db_record = ResumeAnalysis(
-                    filename=resume.filename,
-                    final_match_score=0.0,
-                    ai_plausibility_score=0.0,
-                    classification="Pending",
-                    # Track which user submitted this resume
-                    username=request.session.get("username"),
-                    full_results={"status": "pending", "submitted_by": request.session.get("username")}
-                )
-                session.add(db_record)
-                await session.commit()
-        except Exception as db_e:
-            logger.warning(f"Could not save user submission to DB: {db_e}")
-        return {"status": "success", "message": "Resume submitted successfully."}
+            raise HTTPException(400, "Could not extract enough text from the resume")
+
+        logger.info(f"[USER ANALYZE] {request.session.get('username')} | {resume.filename} | JD: {len(job_description)} chars")
+
+        # ── Run full NLP pipeline ─────────────────────────────────────────
+        years_exp     = extract_years_experience(resume_text)
+        grad_year     = extract_graduation_year(resume_text)
+        sem_sim       = await compute_semantic_similarity_async(resume_text, job_description)
+        skill_overlap = compute_skill_overlap(resume_text, job_description)
+        exp_relevance = score_experience_relevance(resume_text, job_title or job_description)
+        final_score   = round(0.6 * sem_sim + 0.25 * skill_overlap + 0.15 * exp_relevance, 4)
+
+        extracted_skills = list(extract_skills(resume_text))
+        validation = compute_all_validation_features(
+            resume_text, job_description,
+            semantic_similarity=sem_sim,
+            skill_overlap_score=skill_overlap,
+            experience_relevance_score=exp_relevance,
+            final_match_score=final_score,
+            years_experience=years_exp,
+            graduation_year=grad_year,
+            extracted_skills=extracted_skills
+        )
+
+        # ── Classify (with resume-format guard) ───────────────────────────
+        if not is_resume_format(resume_text):
+            classification = {
+                "classification": "Not a Resume",
+                "confidence": 1.0,
+                "prob_Authentic": 0.0,
+                "prob_Suspicious": 0.0,
+                "prob_Potentially Fake": 0.0
+            }
+        else:
+            classification = predict([validation])[0]
+
+        # ── LLM double-check for suspicious/fake verdicts ─────────────────
+        current_class = classification.get("classification", "Unknown")
+        if current_class in ["Suspicious", "Potentially Fake"]:
+            detector = get_llm_detector()
+            verification = detector.verify_prediction(resume_text, job_description, current_class)
+            if verification:
+                classification["llm_verification"] = verification
+                if verification.get("consensus") == "Disagree":
+                    classification["classification"] = "Suspicious"
+
+        skill_details = get_matched_skills(resume_text, job_description)
+
+        # ── Build anonymised summary preview ─────────────────────────────
+        edu_list = list(extract_education_spacy(resume_text))
+        edu_str  = ", ".join([e.title() for e in edu_list[:3]]) + ("..." if len(edu_list) > 3 else "")
+        if not edu_str: edu_str = "Not detected"
+
+        job_list = list(extract_job_titles_spacy(resume_text))
+        job_str  = ", ".join([j.title() for j in job_list[:3]]) + ("..." if len(job_list) > 3 else "")
+        if not job_str: job_str = "Not detected"
+
+        skill_str = ", ".join(extracted_skills[:10]) + ("..." if len(extracted_skills) > 10 else "")
+
+        summary_preview = (
+            f"Experience: ~{years_exp} years\n"
+            f"Past Roles: {job_str}\n"
+            f"Education: {edu_str} (Class of {grad_year})\n\n"
+            f"Top Skills: {skill_str}"
+        )
+
+        # ── Return result — NO database write ─────────────────────────────
+        return {
+            "status": "success",
+            "filename": resume.filename,
+            "resume_preview": summary_preview,
+            "scores": {
+                "semantic_similarity": sem_sim,
+                "skill_overlap_score": skill_overlap,
+                "experience_relevance_score": exp_relevance,
+                "final_match_score": final_score
+            },
+            "skills": skill_details,
+            "validation": validation,
+            "classification": classification
+        }
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"User submit failed: {e}")
-        raise HTTPException(500, "Submission failed. Please try again.")
+        logger.error(f"[USER ANALYZE] failed for {resume.filename}: {e}")
+        raise HTTPException(500, str(e))
 
 
 @app.get("/", response_class=HTMLResponse)
