@@ -7,7 +7,7 @@ sdk: docker
 pinned: false
 ---
 
-# BERT-Based Resume Screening & Authenticity Validation Using XGBoost Classification
+# SBERT-Based Resume Screening & Authenticity Validation Using XGBoost Classification
 
 > **Complete End-to-End Project — Ready for Project Panel Presentation**
 > Built with FastAPI + SBERT + XGBoost + 5-Page Web UI
