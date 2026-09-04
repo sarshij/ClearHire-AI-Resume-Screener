@@ -1,4 +1,4 @@
-﻿---
+---
 title: ClearHire - AI Resume Screener
 emoji: 📄
 colorFrom: blue
@@ -2311,6 +2311,13 @@ Without these settings, login sessions would not persist inside the HF Spaces if
 - 12 validation features
 - PDF + TXT parsing only
 - SQLite database
+
+### Code Backups & Reversions
+During updates to add database-less crash resilience (graceful degradation), original copies of critical files were preserved as backups. If you ever need to revert to the original strict database implementation, you can find them here:
+- `app/main.py.bak(prod)` (Backup for the FastAPI main application)
+- `app/models/database.py.bak(prod)` (Backup for the database connection layer)
+
+To restore the previous behavior, simply delete the current `.py` files and rename these `.bak(prod)` files to `.py`.
 
 ---
 

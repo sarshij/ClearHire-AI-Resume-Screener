@@ -48,7 +48,7 @@ from app.utils.nlp import extract_education_spacy, extract_job_titles_spacy
 from app.features.experience_extraction import extract_years_experience, extract_graduation_year
 from app.features.validation import compute_all_validation_features
 from app.models.classifier import predict, get_model_info
-from app.models.database import init_db, async_session, create_user, authenticate_user, _hash_password, User, DB_AVAILABLE
+from app.models.database import init_db, async_session, create_user, authenticate_user, _hash_password, User
 from app.models.llm_detector import get_llm_detector  # BUG 9: import at top, not inside hot path
 
 logger = setup_logger(__name__)
@@ -63,30 +63,23 @@ async def lifespan(app: FastAPI):
     logger.info("Resume Screener API starting up...")
     
     # ── Database Initialization ─────────────────────────────────────────────
-    # init_db() now returns True/False and never raises, so startup is always safe
-    # even if Supabase is paused or the network is unreachable.
-    db_ok = await init_db()
-    if not db_ok:
-        logger.warning(
-            "DB unavailable at startup — running in DB-less mode. "
-            "Resume screening works normally; history/analytics require DB."
-        )
+    await init_db()
 
     # ── Seed default admin + applicant accounts into DB ──────────────────────
-    # Only attempt if DB connected successfully.
-    if db_ok:
-        try:
-            from sqlalchemy import select
-            async with async_session() as session:
-                for username, info in USERS.items():
-                    result = await session.execute(
-                        select(User).where(User.username == username)
-                    )
-                    if result.scalar_one_or_none() is None:
-                        await create_user(session, username, info["password"], info["role"])
-                        logger.info(f"Seeded default account: {username} ({info['role']})")
-        except Exception as seed_err:
-            logger.warning(f"Could not seed default users: {seed_err}")
+    # This ensures the hardcoded demo credentials (admin/hr2026, applicant/apply2026)
+    # also exist in the database, so the DB-backed auth path always works.
+    try:
+        from sqlalchemy import select
+        async with async_session() as session:
+            for username, info in USERS.items():
+                result = await session.execute(
+                    select(User).where(User.username == username)
+                )
+                if result.scalar_one_or_none() is None:
+                    await create_user(session, username, info["password"], info["role"])
+                    logger.info(f"Seeded default account: {username} ({info['role']})")
+    except Exception as seed_err:
+        logger.warning(f"Could not seed default users: {seed_err}")
     
     # ── Startup model pre-warming ─────────────────────────────────────────────
     from app.models.classifier import load_model
@@ -602,28 +595,25 @@ async def predict_single(
             "classification": classification
         }
         
-        # Async save to DB (only when DB is available, skip silently otherwise)
-        if DB_AVAILABLE:
-            try:
-                from app.models.database import async_session, ResumeAnalysis
-                async with async_session() as session:
-                    db_analysis = ResumeAnalysis(
-                        filename=resume.filename,
-                        final_match_score=final_score,
-                        # BUG 6 FIX: ai_plausibility_score was removed as a feature;
-                        # default to 0.5 as a neutral placeholder in the DB record
-                        ai_plausibility_score=0.5,
-                        classification=classification['classification'],
-                        # Track which HR user performed this single scan
-                        username=request.session.get("username"),
-                        full_results=result_data
-                    )
-                    session.add(db_analysis)
-                    await session.commit()
-            except Exception as db_e:
-                logger.error(f"Failed to save to database: {db_e}")
-        else:
-            logger.debug("DB unavailable — skipping result persistence for this scan.")
+        # Async save to DB
+        try:
+            from app.models.database import async_session, ResumeAnalysis
+            async with async_session() as session:
+                db_analysis = ResumeAnalysis(
+                    filename=resume.filename,
+                    final_match_score=final_score,
+                    # BUG 6 FIX: ai_plausibility_score was removed as a feature;
+                    # default to 0.5 as a neutral placeholder in the DB record
+                    ai_plausibility_score=0.5,
+                    classification=classification['classification'],
+                    # Track which HR user performed this single scan
+                    username=request.session.get("username"),
+                    full_results=result_data
+                )
+                session.add(db_analysis)
+                await session.commit()
+        except Exception as db_e:
+            logger.error(f"Failed to save to database: {db_e}")
 
         logger.info(f"Result: {resume.filename} -> {classification['classification']} ({classification['confidence']*100:.1f}%)")
         return result_data
@@ -880,10 +870,6 @@ async def batch_status(job_id: str):
 async def get_history(request: Request, limit: int = 50, offset: int = 0):
     """Fetch analysis history filtered by the currently logged-in user.
     Each HR user only sees their own scanned resumes."""
-    # Return empty history gracefully when DB is offline
-    if not DB_AVAILABLE:
-        return {"status": "success", "history": [], "db_offline": True,
-                "message": "History unavailable — database is currently offline."}
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select
@@ -924,8 +910,6 @@ async def delete_history_record(record_id: int, request: Request):
     redirect = require_hr(request)
     if redirect:
         raise HTTPException(403, "Authentication required")
-    if not DB_AVAILABLE:
-        raise HTTPException(503, "Database is currently offline — cannot delete records.")
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select
@@ -954,8 +938,6 @@ async def delete_history_record(record_id: int, request: Request):
 @app.get("/api/export")
 async def export_data(request: Request, format: str = 'csv'):
     """Export analysis history for the current logged-in user only."""
-    if not DB_AVAILABLE:
-        raise HTTPException(503, "Database is currently offline — cannot export history.")
     try:
         from app.models.database import async_session, ResumeAnalysis
         from sqlalchemy import select

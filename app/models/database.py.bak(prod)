@@ -101,12 +101,6 @@ class ResumeAnalysis(Base):
 # ── PostgreSQL Connection ─────────────────────────────────────────────────────
 # Priority: use DATABASE_URL directly if set, otherwise build from components.
 # To switch between machines (e.g. dev → friend's laptop) simply update .env.
-#
-# DB_AVAILABLE is a global flag set at startup. When the database is unreachable
-# (e.g. Supabase free-tier auto-paused), this flag is False and all DB writes
-# are silently skipped — the app keeps running in a DB-less mode.
-DB_AVAILABLE: bool = False  # will be set to True by init_db() on success
-
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -127,53 +121,22 @@ if not DATABASE_URL:
         f"@{pg_host}:{pg_port}/{pg_db}"
     )
 
-# ── Create engine only if we have a DATABASE_URL ──────────────────────────────
-# We still create the engine object here (it doesn't connect immediately).
-# The actual connection attempt happens inside init_db() and is caught there.
-try:
-    engine = create_async_engine(
-        DATABASE_URL,
-        echo=False,
-        future=True,
-        pool_pre_ping=True,   # detect dropped connections before using a pooled connection
-        connect_args={"timeout": 10},  # 10-second connection timeout so startup is fast
-    )
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
-except Exception as _engine_err:
-    # This branch is hit if DATABASE_URL itself is malformed.
-    logger.error(f"Failed to create DB engine (DATABASE_URL malformed?): {_engine_err}")
-    engine = None          # type: ignore[assignment]
-    async_session = None   # type: ignore[assignment]
+# Async Engine and Session
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    future=True,
+    pool_pre_ping=True,   # detect dropped connections before using a pooled connection
+)
 
-async def init_db() -> bool:
-    """
-    Initialise the database schema.  Returns True on success, False if the DB
-    is unreachable (e.g. Supabase free-tier paused).  Never raises — the
-    application continues in a DB-less degraded mode when this returns False.
-    """
-    global DB_AVAILABLE
+async_session = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
-    # If the engine was never created (malformed URL), bail out immediately.
-    if engine is None:
-        logger.error("DB engine is None — skipping init_db().")
-        DB_AVAILABLE = False
-        return False
-
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-    except Exception as conn_err:
-        # Supabase paused / network unreachable / wrong credentials, etc.
-        logger.warning(
-            f"Database is unreachable — running in DB-less mode. "
-            f"Resume screening still works; history/analytics are disabled. "
-            f"Error: {conn_err}"
-        )
-        DB_AVAILABLE = False
-        return False
-
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
     # ── Schema migration: add 'username' column if it doesn't exist ───────────
     # This handles existing databases that were created before the username
     # column was added to the ResumeAnalysis model.
@@ -194,10 +157,8 @@ async def init_db() -> bool:
         logger.info("Schema migration: 'username' column verified/added.")
     except Exception as mig_err:
         logger.warning(f"Schema migration for 'username' column skipped or failed: {mig_err}")
-
+    
     logger.info("Database initialized successfully.")
-    DB_AVAILABLE = True
-    return True
 
 async def get_db():
     async with async_session() as session:
